@@ -23,7 +23,7 @@ was only a read-only observer with YAML-defined targets.
 | Process owner | Admin starts, stops, and restarts `erpc.exe` |
 | Configuration source | PostgreSQL is authoritative |
 | eRPC integration | Admin generates YAML; eRPC remains unchanged |
-| Persistence shape | One complete configuration document per immutable revision |
+| Persistence shape | One complete operator override document per immutable revision; effective values come from the pinned eRPC defaults |
 | Apply behavior | Saving never restarts eRPC; start/restart uses the latest valid revision |
 | Upstream operations | Persistent CRUD through revisions plus immediate cordon/uncordon |
 | Version display | Latest config revision, running config revision, eRPC version, and commit |
@@ -31,7 +31,7 @@ was only a read-only observer with YAML-defined targets.
 | Poll settings | Admin observation polling and eRPC state polling are presented separately |
 | Port settings | Saved as eRPC config and applied only after restart |
 | Configuration secrets | Stored in PostgreSQL as plaintext and viewable/editable after Admin login |
-| Initial setup | Chinese field forms create the first complete configuration revision |
+| Initial setup | Admin automatically creates revision 1 from the current eRPC defaults; no field entry is required |
 | Configuration UI | Users never write or paste YAML; Admin generates YAML internally |
 | Language | Chinese only; no i18n layer |
 
@@ -83,15 +83,25 @@ PostgreSQL.
 Each row is immutable and contains:
 
 - monotonically increasing `revision`;
-- full eRPC configuration as `jsonb`;
+- the complete operator override document as `jsonb`;
 - SHA-256 content hash;
 - creation time and administrator username.
 
-The JSON document is open-ended. Structured form updates merge into the current
-document so unknown object keys from a newer eRPC revision are preserved. The
-Web application owns a field schema for the current eRPC version and must be
-updated when upstream adds configuration fields. Users are never required to
-edit YAML as a compatibility fallback.
+The override document is open-ended. It stores every explicit operator choice
+but omits untouched system defaults. Admin combines it with the default snapshot
+generated from the pinned eRPC source to produce the effective configuration
+shown by the Web application. When Admin writes YAML, it writes the overrides;
+the unmodified eRPC process applies the same defaults during `SetDefaults`.
+Therefore an untouched field follows a changed upstream default after an eRPC
+upgrade, while a customized field remains fixed. The running revision together
+with the recorded eRPC binary version and commit identifies which defaults were
+used at runtime.
+
+Structured form updates merge into the current override document so unknown
+object keys from a newer eRPC revision are preserved. The Web application owns
+field metadata for the pinned eRPC version and must be updated when upstream
+adds configuration fields. Users are never required to edit YAML as a
+compatibility fallback.
 
 ### `erpc_runtime`
 
@@ -103,20 +113,30 @@ binary version, binary commit, and last process error. The latest revision is
 
 ### Initial setup
 
-The first-run workspace shows a Chinese setup form prefilled with the original
-eRPC example defaults: log level, HTTP host and port, project ID, and one
-editable upstream row containing ID, RPC URL, and EVM chain ID. Optional
-sections expose the remaining current eRPC fields. Admin builds the complete
-JSON document, converts it to a temporary YAML file, and invokes the configured
-eRPC binary with `validate`. A successful save creates revision 1.
+After PostgreSQL initialization, Admin validates an empty override document with
+the configured eRPC binary and automatically creates revision 1 as the system
+default configuration. This is not an unconfigured state: eRPC applies its
+normal `Config.SetDefaults` behavior, including listeners, health checks,
+metrics, and the default project behavior. The operator can start it without
+filling in any field.
+
+The Web application renders the effective default values directly in their
+controls. Each untouched field is marked `系统默认`; the raw YAML key is shown
+only inside its help content. Editing a value creates an explicit override and
+changes the marker to `自定义`. `恢复默认` removes that override and immediately
+shows the current eRPC default again. Fields without defaults remain visibly
+unset and explain what must be supplied before the related optional feature can
+be enabled.
 
 ### Save
 
-Structured forms submit one complete JSON document. Admin converts it to YAML
-internally and validates it with the exact eRPC binary before inserting a
-revision. An invalid document returns field-oriented errors and consumes no
-revision number. A `baseRevision` field prevents two browser tabs from silently
-overwriting each other; stale writes return HTTP 409.
+Structured forms submit one complete override document. Values equal to the
+current system default are removed from the override document unless the field
+has no default. Admin converts the overrides to YAML internally and validates
+them with the exact eRPC binary before inserting a revision. An invalid document
+returns field-oriented errors and consumes no revision number. A `baseRevision`
+field prevents two browser tabs from silently overwriting each other; stale
+writes return HTTP 409.
 
 ### Apply
 
@@ -197,6 +217,34 @@ choices use selects, numeric values use number inputs, and durations and open
 string fields use validated text inputs. There is no YAML text area, import
 box, or editable source mode.
 
+### Field metadata and help
+
+The field list is generated from `common.Config` and all transitively referenced
+configuration structs. The generated schema records the owning Go type, YAML
+key, value type, source comment, and deprecation state. A generated default
+snapshot comes from the same `common.Config.SetDefaults` path used by eRPC;
+conditional defaults such as a gRPC host inheriting the HTTP host are recorded
+as inheritance rules instead of guessed literals. `erpc.dist.yaml` and the
+matching pages under `docs/pages/config/` provide examples and operational
+notes.
+
+Every supported field has checked-in Chinese metadata keyed by owning config
+type and YAML field. The UI shows a `?` help icon containing:
+
+- what the field controls;
+- its current effective default, inheritance rule, or `无默认值`;
+- the accepted format, unit, choices, or useful range where known;
+- one safe example;
+- restart impact and important risk notes where applicable;
+- the original YAML key for technical troubleshooting.
+
+There is no automatic word-by-word translation fallback. Schema generation or
+tests fail when a new upstream field lacks a Chinese name, explanation, example,
+or explicit default classification. Deprecated fields are preserved when read
+but are hidden from normal editing and identified in help metadata. Sensitive
+fields keep password-style controls while remaining viewable on explicit user
+action, per the accepted plaintext-secret decision.
+
 ## Ports and polling
 
 The UI treats the following as separate concepts:
@@ -250,9 +298,9 @@ endpoints would duplicate the same revision logic and are intentionally omitted.
 ## Acceptance criteria
 
 1. Admin connects to PostgreSQL and persists the single administrator and
-   immutable full-document config revisions.
-2. Completing the initial Chinese field form creates revision 1; invalid values
-   create no revision.
+   immutable operator-override config revisions.
+2. Admin automatically creates revision 1 from the current eRPC defaults; the
+   operator can start without entering configuration fields.
 3. Saving a valid edit increments the revision without restarting eRPC.
 4. Admin starts, stops, and restarts one local eRPC process on Windows.
 5. Restart generates YAML from the latest revision and updates the running
@@ -261,7 +309,11 @@ endpoints would duplicate the same revision logic and are intentionally omitted.
 7. Upstream add/edit/delete creates revisions; cordon/uncordon remains an
    immediate runtime operation.
 8. Chinese field forms cover the complete configuration supported by the
-   pinned eRPC version; users never write or paste YAML.
+   pinned eRPC version; every field has a help icon, default classification, and
+   safe example, and users never write or paste YAML.
 9. RPC URLs and other eRPC secrets are viewable/editable after login, but never
    written to application logs.
 10. No eRPC root source or public config schema changes are required.
+11. Untouched controls display effective defaults without persisting them as
+    overrides; editing and restoring a field visibly switches between `自定义`
+    and `系统默认`.
