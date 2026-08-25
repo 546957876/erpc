@@ -1,0 +1,7 @@
+listen: 127.0.0.1:8090
+pollInterval: 10s
+webTokenEnv: ADMIN_WEB_TOKEN
+targets:
+  - id: local-erpc
+    baseUrl: http://127.0.0.1:4000
+    adminTokenEnv: ERPC_LOCAL_ADMIN_TOKEN
