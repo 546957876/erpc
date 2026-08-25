@@ -1,135 +1,267 @@
-# Independent eRPC Admin Web Design
+# Managed eRPC Admin Web Design
 
 **Status:** Approved for implementation
 **Date:** 2026-08-26
 
 ## Goal
 
-Build a standalone operator control plane beside eRPC. It monitors one or more
-already-running eRPC instances, reads their existing `POST /admin` JSON-RPC
-interface, and exposes a browser workspace for topology, health, and cordon
-operations. The control plane does not edit `erpc.yaml`, write eRPC storage, or
-modify eRPC source code.
+Build a standalone Chinese operator control plane beside eRPC. The Admin
+process owns one local eRPC process, stores versioned eRPC configuration in
+PostgreSQL, and uses the unmodified eRPC executable to validate and run the
+selected configuration. The browser manages the desired configuration while
+the running eRPC process continues using the revision with which it started.
+
+The already-built monitoring, project health, and cordon controls remain part
+of the product. This document supersedes the earlier v1 restriction that Admin
+was only a read-only observer with YAML-defined targets.
+
+## Confirmed decisions
+
+| Area | Decision |
+|---|---|
+| Managed scope | One local eRPC instance |
+| Process owner | Admin starts, stops, and restarts `erpc.exe` |
+| Configuration source | PostgreSQL is authoritative |
+| eRPC integration | Admin generates YAML; eRPC remains unchanged |
+| Persistence shape | One complete configuration document per immutable revision |
+| Apply behavior | Saving never restarts eRPC; start/restart uses the latest valid revision |
+| Upstream operations | Persistent CRUD through revisions plus immediate cordon/uncordon |
+| Version display | Latest config revision, running config revision, eRPC version, and commit |
+| Invalid configuration | Reject without creating a revision |
+| Poll settings | Admin observation polling and eRPC state polling are presented separately |
+| Port settings | Saved as eRPC config and applied only after restart |
+| Configuration secrets | Stored in PostgreSQL as plaintext and viewable/editable after Admin login |
+| Initial setup | Chinese field forms create the first complete configuration revision |
+| Configuration UI | Users never write or paste YAML; Admin generates YAML internally |
+| Language | Chinese only; no i18n layer |
 
 ## Repository boundaries
 
-- `Admin/` is an independent Go module and process.
-- `web/` is an independent React/Vite application.
-- The eRPC root module, Go packages, workspace file, and lockfile are not
-  changed by this feature.
-- The Admin process is the credential boundary. eRPC admin tokens are loaded
-  from environment variables and are never sent to the browser.
+- `Admin/` remains an independent Go module and process.
+- `web/` remains an independent React/Vite application.
+- eRPC root packages, public config structs, startup behavior, and `/admin`
+  methods are not changed.
+- The unimplemented root plan `plans/001-dynamic-config-controller.md` is not a
+  dependency. If upstream later ships it, Admin may add an adapter in a
+  separate change.
+- Admin bootstrap settings stay outside the managed eRPC document: Admin listen
+  address, PostgreSQL DSN environment name, eRPC executable path, runtime
+  directory, and Admin polling interval.
 
-## Configuration
+## Runtime flow
 
-Admin has a small local YAML file. It stores target metadata, not eRPC config:
-
-```yaml
-listen: 127.0.0.1:8090
-pollInterval: 10s
-authFile: data/admin-auth.json
-targets:
-  - id: local-erpc
-    baseUrl: http://127.0.0.1:4000
-    adminTokenEnv: ERPC_LOCAL_ADMIN_TOKEN
+```text
+Browser
+  -> authenticated Admin HTTP API
+  -> PostgreSQL immutable config revisions
+  -> generated runtime/revision-<n>/erpc.yaml
+  -> erpc validate <generated-yaml>
+  -> erpc start <generated-yaml>
+  -> local eRPC process
+  -> configured RPC upstreams
 ```
 
-`baseUrl` points at an eRPC HTTP listener. Admin appends `/admin` when needed.
-Target definitions are loaded at startup; v1 has no database and no target
-create/edit/delete UI. A restart reloads this file and rebuilds snapshots.
-`authFile` stores the single administrator username and bcrypt password hash.
-It never stores the plaintext password.
+Admin continues calling the running eRPC `/admin` endpoint for topology,
+project health, and cordon operations. It authenticates with the secret from
+the running revision, not the latest edited revision. That prevents an unapplied
+credential edit from breaking access to the current process.
 
-## Administrator authentication
+## PostgreSQL model
 
-`GET /api/auth/status` is public and reports whether initial setup is required
-and whether the current browser session is authenticated. When no account file
-exists, `/login` presents a create-administrator form. `POST /api/auth/setup`
-validates the username and password, atomically creates the account file, and
-immediately signs in the browser. Setup is permanently closed after that file
-exists; a second setup request returns HTTP 409.
+Use PostgreSQL, not SQLite. Keep the schema small and do not normalize every
+eRPC field.
 
-After setup, `/login` presents only username and password fields. Successful
-`POST /api/auth/login` creates a cryptographically random server-side session
-and sends an `HttpOnly`, `SameSite=Strict` cookie. `POST /api/auth/logout`
-removes that session and clears the cookie. Sessions are intentionally
-in-memory and expire after 24 hours, so an Admin restart requires login again
-without recreating the administrator. All non-auth `/api` endpoints require a
-valid session cookie.
+### `admin_users`
 
-## Runtime behavior
+Contains the single administrator username and bcrypt password hash. The user
+password is never stored in plaintext. Existing first-run setup and in-memory
+24-hour sessions remain; only account persistence moves from the JSON file to
+PostgreSQL.
 
-The poller calls `erpc_taxonomy` for every target at `pollInterval`. A successful
-response refreshes the target snapshot and reports `healthy`. A failed request
-reports `degraded` when an earlier snapshot exists and `offline` otherwise;
-HTTP 401 is reported as `unauthorized`. eRPC itself continues to own endpoint
-health checks, request-time failover, and rotation. Admin is an observer and
-operator control surface, not a second health engine.
+### `config_revisions`
 
-The browser can request project health (`erpc_project`), list whole-upstream
-cordons (`erpc_listCordoned`), and issue `erpc_cordonUpstream` or
-`erpc_uncordonUpstream`. These operations are proxied by Admin with the target
-token held server-side.
+Each row is immutable and contains:
 
-## HTTP API
+- monotonically increasing `revision`;
+- full eRPC configuration as `jsonb`;
+- SHA-256 content hash;
+- creation time and administrator username.
 
-The Admin process exposes JSON endpoints for the web app:
+The JSON document is open-ended. Structured form updates merge into the current
+document so unknown object keys from a newer eRPC revision are preserved. The
+Web application owns a field schema for the current eRPC version and must be
+updated when upstream adds configuration fields. Users are never required to
+edit YAML as a compatibility fallback.
+
+### `erpc_runtime`
+
+A singleton row records the managed PID, process start time, running revision,
+binary version, binary commit, and last process error. The latest revision is
+`MAX(config_revisions.revision)` and is not duplicated in another table.
+
+## Configuration lifecycle
+
+### Initial setup
+
+The first-run workspace shows a Chinese setup form prefilled with the original
+eRPC example defaults: log level, HTTP host and port, project ID, and one
+editable upstream row containing ID, RPC URL, and EVM chain ID. Optional
+sections expose the remaining current eRPC fields. Admin builds the complete
+JSON document, converts it to a temporary YAML file, and invokes the configured
+eRPC binary with `validate`. A successful save creates revision 1.
+
+### Save
+
+Structured forms submit one complete JSON document. Admin converts it to YAML
+internally and validates it with the exact eRPC binary before inserting a
+revision. An invalid document returns field-oriented errors and consumes no
+revision number. A `baseRevision` field prevents two browser tabs from silently
+overwriting each other; stale writes return HTTP 409.
+
+### Apply
+
+Saving does not touch the running process. Starting or restarting selects the
+latest valid revision, writes a revision-specific YAML artifact, validates it
+again, and starts eRPC with that file. The runtime row is updated only after
+the new process is confirmed reachable.
+
+Stopping leaves both revision numbers unchanged. The UI reports one of:
+
+- `未启动`;
+- `运行中，配置为最新版本`;
+- `运行中，有未应用配置`;
+- `启动失败`;
+- `外部进程，Admin 不会强制终止`.
+
+### Rollback
+
+Revisions never move backward. Restoring an old revision validates its document
+and inserts a new latest revision. The operator then explicitly restarts eRPC.
+
+## Process ownership
+
+- Admin controls only the eRPC process it started.
+- Start is rejected when another process already owns the configured eRPC port.
+- Stop requests graceful termination first and force-kills only after a bounded
+  timeout.
+- Admin persists PID and process start time. After an Admin restart it verifies
+  both before treating the process as owned, preventing PID-reuse kills.
+- If ownership cannot be proven, Admin shows the process as external and does
+  not terminate it.
+- Standard output and standard error are captured in bounded local log files;
+  configuration payloads and plaintext secrets are never logged.
+
+## Upstream management
+
+Persistent create, edit, and delete operations modify
+`projects[].upstreams` in the complete desired document and save a new revision.
+They do not need separate backend CRUD tables or eRPC methods. The UI validates
+duplicate IDs and required endpoint/network fields before submitting, while
+eRPC remains the final validator.
+
+Immediate temporary disable/enable continues using the existing
+`erpc_cordonUpstream` and `erpc_uncordonUpstream` methods against the running
+revision. The UI must distinguish:
+
+- `临时摘除`: immediate runtime action, no config revision;
+- `修改配置`: persistent desired state, restart required.
+
+## Configuration workspace
+
+The application remains dark, compact, and Chinese-only. React Router owns URL
+state, Redux Toolkit owns authenticated UI state, TanStack Query owns server
+state, Ant Design supplies controls, and Tailwind supplies layout.
+
+Required pages:
+
+- `运行概览`: process status, start/stop/restart, latest/running revision,
+  binary version/commit, ports, last error, and topology summary;
+- `上游管理`: project-scoped upstream table, add/edit/delete, and separate
+  temporary cordon controls;
+- `服务设置`: log level, cluster key, IPv4/IPv6 HTTP, gRPC, Metrics, Admin
+  auth, health checks, proxy pools, tracing, and restart-required indicators;
+- `项目与网络`: project, provider, network, architecture, chain, auth, and
+  project-level policy fields;
+- `轮询与容错`: Admin observation interval shown separately from EVM/SVM state
+  polling, retry, hedge, timeout, circuit breaker, consensus, and selection
+  policy settings;
+- `缓存与限流`: database connectors and policies plus rate-limiter budgets and
+  rules;
+- `完整配置`: sectioned Chinese field forms for every field supported by the
+  pinned eRPC version, without a YAML input or editor;
+- `配置版本`: immutable history, comparison metadata, view, and restore-as-new.
+
+Frequently used fields remain visible; uncommon groups are collapsed by
+section. Arrays use add/edit/delete controls, booleans use switches, bounded
+choices use selects, numeric values use number inputs, and durations and open
+string fields use validated text inputs. There is no YAML text area, import
+box, or editable source mode.
+
+## Ports and polling
+
+The UI treats the following as separate concepts:
+
+- Admin observation polling: how often Admin refreshes topology;
+- EVM `statePollerInterval` / `statePollerDebounce`;
+- network `fallbackStatePollerDebounce`;
+- SVM `statePollerDebounce`;
+- other connector-specific intervals such as DynamoDB state polling.
+
+Likewise, eRPC HTTP IPv4/IPv6, gRPC, and Metrics listeners have separate enable,
+host, and port controls. These fields are configuration only and never mutate
+live listeners; the UI marks them `重启后生效`. The Admin Web listen port is a
+bootstrap concern and is not part of the eRPC config revision.
+
+## Security boundaries
+
+- The confirmed deployment stores eRPC configuration secrets in PostgreSQL as
+  plaintext so the authenticated operator can view and edit them.
+- Admin account passwords remain bcrypt hashes; the plaintext decision does not
+  apply to login passwords.
+- All config and process APIs require the existing HttpOnly, SameSite session.
+- Lists and logs do not contain full config payloads. A dedicated authenticated
+  detail request returns plaintext fields for editing.
+- Generated YAML also contains plaintext secrets and is written only under the
+  configured runtime directory.
+- PostgreSQL users, backups, and filesystem readers with access to those data
+  can read the secrets; this is an accepted single-user deployment tradeoff.
+
+## Admin HTTP API
+
+The existing auth, topology, project, and cordon routes remain. Add the minimum
+write surface:
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/auth/status` | Report setup and current session state |
-| `POST /api/auth/setup` | Create the first and only administrator |
-| `POST /api/auth/login` | Start a username/password session |
-| `POST /api/auth/logout` | End the current session |
-| `GET /api/targets` | Target connection state and last taxonomy snapshot |
-| `GET /api/targets/{id}/taxonomy` | Fresh taxonomy from eRPC |
-| `GET /api/targets/{id}/projects/{projectId}` | Project config and live health |
-| `GET /api/targets/{id}/cordons?projectId=...` | Whole-upstream cordons |
-| `POST /api/targets/{id}/cordon` | Proxy cordon request |
-| `POST /api/targets/{id}/uncordon` | Proxy uncordon request |
+| `GET /api/runtime` | Managed process and version status |
+| `POST /api/runtime/start` | Start latest valid revision |
+| `POST /api/runtime/stop` | Gracefully stop the managed process |
+| `POST /api/runtime/restart` | Apply latest valid revision by restart |
+| `GET /api/config` | Latest full document and latest/running revision |
+| `POST /api/config/validate` | Validate without saving |
+| `POST /api/config` | Validate and create an immutable revision |
+| `GET /api/config/revisions` | List revision metadata |
+| `GET /api/config/revisions/{revision}` | Read one full revision |
+| `POST /api/config/revisions/{revision}/restore` | Copy an old revision into a new latest revision |
 
-The browser never receives or stores an Admin token. eRPC target tokens remain
-separate environment variables and are only attached by the Admin process when
-it calls each target's `/admin` endpoint.
-
-## Web workspace
-
-The first screen is a dark, compact operational shell. React Router owns URL
-state; Redux Toolkit owns current authenticated UI state; the server cookie is
-the source of truth for the session. TanStack Query owns server state and
-refetching; Ant Design supplies tables, forms, tags, drawers, and notifications;
-Tailwind supplies layout and spacing.
-
-Routes are `/login`, `/targets`, and `/targets/:targetId`. `/login` switches
-between first-run setup and normal sign-in based on `/api/auth/status`. The
-target page keeps
-the comparison surface as a table: connection status, project/network/upstream
-counts, vendor, and cordon actions. There is no marketing hero and no write
-form for RPC URLs in v1.
-
-## Security and failure handling
-
-- Administrator passwords are bcrypt hashed and the account file is created
-  atomically with owner-only permissions where the operating system supports it.
-- Login failures return one generic message so callers cannot distinguish an
-  unknown username from a wrong password.
-- eRPC tokens are read from environment variables once at startup and omitted
-  from logs, JSON responses, and browser storage.
-- Unknown target IDs return 404; malformed JSON returns 400; failed eRPC calls
-  return bounded error messages without request credentials.
-- A target remains visible after a poll failure so operators can distinguish a
-  stale snapshot from an empty topology.
-- Cordon/uncordon responses invalidate the corresponding Query cache.
+Upstream forms use `GET/POST /api/config`; separate persistent upstream CRUD
+endpoints would duplicate the same revision logic and are intentionally omitted.
 
 ## Acceptance criteria
 
-1. `Admin` builds and tests as an independent Go module on Windows without
-   Docker or imports from the eRPC module.
-2. `web` installs and builds independently with pnpm.
-3. Starting Admin with one target polls eRPC at the configured interval and
-   exposes the target status through `/api/targets`.
-4. The web app can inspect projects and cordon/uncordon an existing upstream
-   without learning the eRPC token.
-5. Existing eRPC files and behavior have no diff.
-6. First launch creates exactly one administrator; later launches show only
-   username/password login and preserve the account across process restarts.
+1. Admin connects to PostgreSQL and persists the single administrator and
+   immutable full-document config revisions.
+2. Completing the initial Chinese field form creates revision 1; invalid values
+   create no revision.
+3. Saving a valid edit increments the revision without restarting eRPC.
+4. Admin starts, stops, and restarts one local eRPC process on Windows.
+5. Restart generates YAML from the latest revision and updates the running
+   revision only after eRPC becomes reachable.
+6. The UI clearly shows whether running and latest revisions match.
+7. Upstream add/edit/delete creates revisions; cordon/uncordon remains an
+   immediate runtime operation.
+8. Chinese field forms cover the complete configuration supported by the
+   pinned eRPC version; users never write or paste YAML.
+9. RPC URLs and other eRPC secrets are viewable/editable after login, but never
+   written to application logs.
+10. No eRPC root source or public config schema changes are required.
