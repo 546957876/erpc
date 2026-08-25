@@ -1,6 +1,6 @@
 # eRPC Admin Web - Feature Design
 
-**Status**: Review
+**Status**: Confirmed for implementation
 **Last revised**: 2026-08-26
 
 ## Goal
@@ -22,6 +22,9 @@ today's startup and routing behavior unchanged.
 - URLs: `GET /admin/` serves the SPA; existing `POST /admin` remains the
   authenticated JSON-RPC admin endpoint.
 - Frontend: React, TypeScript, Vite, Ant Design, and Tailwind CSS.
+- Application infrastructure: React Router, Redux Toolkit, React Redux,
+  `redux-persist`, and TanStack Query are required rather than hand-written
+  routing, global-state, persistence, or server-cache layers.
 - Theme: dark and compact by default.
 - Authentication: the operator enters the existing admin secret token; it is
   stored in browser `sessionStorage` only.
@@ -116,6 +119,21 @@ layout, spacing, responsive behavior, and small typography adjustments. Theme
 colors, control density, radius, and component states come from Ant Design
 tokens; Tailwind does not override Ant Design internals.
 
+The application uses explicit ownership boundaries so later writable resources
+can be added without replacing the v1 foundation:
+
+- React Router owns URL state and guarded page navigation. Routes are
+  `/admin/login`, `/admin/upstreams`, `/admin/projects`, `/admin/networks`, and
+  `/admin/config`; `/admin/` redirects according to session state.
+- Redux Toolkit owns authentication/session state, the selected project, and
+  global UI preferences. `redux-persist` writes the whitelisted session slice
+  to browser `sessionStorage`; it never falls back to `localStorage`.
+- TanStack Query owns server state, request deduplication, stale/refetch policy,
+  mutations, and post-mutation invalidation. Admin API response collections are
+  not duplicated into Redux.
+- Component-local state owns drawer visibility, draft forms, search text, and
+  row selection where those values do not need to survive navigation.
+
 The workspace contains:
 
 - A compact top bar with project selection, connection state, counts, refresh,
@@ -186,15 +204,22 @@ do not enable dynamic management continue to start normally.
 
 ### Storage model
 
-Each explicit upstream is one versioned JSON value under a project partition:
+Each explicit upstream is one versioned JSON value under a project partition.
+An authoritative `_index` item supplies initialization state, the desired
+revision, and upstream IDs because `Connector.List` is not portable across all
+existing connector implementations:
 
 ```text
 partition: admin/upstreams/v1/<projectId>
-range:     <upstreamId>
-value:     { revision, updatedAt, updatedBy, config }
+range:     _index
+value:     { schemaVersion: 1, initialized: true, desiredRevision, ids: [...] }
 
-signal:    admin/upstreams/v1/<projectId>/revision
-marker:    admin/upstreams/v1/<projectId>/_initialized
+range:     <upstreamId>
+value:     { schemaVersion: 1, revision, updatedAt, updatedBy, config }
+
+signal partition: admin/upstreams/v1/<projectId>/revision
+signal range:     value
+signal value:     data.CounterInt64State
 ```
 
 `revision` on each value is that upstream's resource version. The signal is a
@@ -202,11 +227,22 @@ separate project-wide monotonic revision used only to trigger reconciliation.
 Create requires no resource version; update and delete compare the caller's
 `expectedRevision` with the stored upstream under the lock.
 
-Writes take the existing distributed connector lock, compare the resource
-version, persist the change, persist the incremented project revision, and then
-publish that revision with `PublishCounterInt64`. The writing instance
-reconciles immediately. Other instances receive `WatchCounterInt64`;
-PostgreSQL's existing 30-second fallback poll covers missed notifications.
+Writes take the existing distributed connector lock, read the index and target,
+compare the resource version, and persist the target plus the updated index.
+The index is authoritative: delete removes the ID from the index first, then
+best-effort removes the now-unreachable item. This makes a leftover item inert
+instead of making a partially completed delete reappear. The project revision
+is also persisted as `data.CounterInt64State` at the signal key before
+`PublishCounterInt64`; this is required for the watcher's fallback read. The
+writing instance reconciles immediately. Other instances receive
+`WatchCounterInt64`; PostgreSQL's existing 30-second fallback poll covers
+missed notifications.
+
+The store keeps a process-local monotonic snapshot cache and compares its
+`desiredRevision` with connector reads, always choosing the newer complete
+snapshot. This makes immediate consecutive writes reliable with the existing
+asynchronous Memory connector while ensuring an older local snapshot can never
+override a newer PostgreSQL revision written by another replica.
 
 The storage codec must not call `UpstreamConfig.MarshalJSON`, because that
 public serializer intentionally redacts endpoint credentials. Storage uses an
@@ -289,8 +325,10 @@ its current JSON-RPC behavior. Unknown SPA paths fall back to `index.html`.
 
 Hashed JS/CSS assets receive long-lived immutable caching. `index.html` uses
 `no-store` so a binary upgrade is visible without a hard refresh. Development
-uses the Vite server with `/admin` proxied to the Go server; production has one
-listener and no CORS dependency.
+uses a dedicated Vite `/admin-api` proxy that rewrites POSTs to the Go server's
+`/admin` endpoint, avoiding a collision with the SPA's `/admin/` base path.
+Production posts directly to `/admin`, has one listener, and has no CORS
+dependency.
 
 ## Security and errors
 
@@ -319,6 +357,9 @@ mocks follow the repository's gock ordering rules.
 Frontend tests cover token/session behavior, JSON-RPC error mapping, list and
 filter behavior, create/edit validation, optimistic conflict refresh, secret
 endpoint preservation, destructive confirmation, and read-only navigation.
+Router tests cover protected-route redirects and refresh/deep-link behavior;
+Redux persistence tests prove that only the whitelisted session state reaches
+`sessionStorage`; Query tests prove invalidation and refetch after mutations.
 
 End-to-end acceptance on Windows:
 
@@ -346,7 +387,8 @@ End-to-end acceptance on Windows:
   secrecy rules.
 - [ ] Add controller reconciliation, local apply status, multi-instance watch,
   metrics, and focused Go tests.
-- [ ] Scaffold `web/` with React, TypeScript, Vite, Ant Design, and Tailwind.
+- [ ] Scaffold `web/` with React, TypeScript, Vite, Ant Design, Tailwind, React
+  Router, Redux Toolkit, `redux-persist`, and TanStack Query.
 - [ ] Build the session login, API client, shell, read-only navigation, upstream
   table, filters, drawer form, and destructive actions.
 - [ ] Embed `web/dist`, add `/admin/` asset routing, and add the Vite development
