@@ -53,11 +53,12 @@ func main() {
 		accounts = adminauth.NewDatabaseStore(db)
 		revisionStore := revisions.NewStore(db)
 		validator := configdoc.Validator{Binary: runtime.ERPCBinary, RuntimeDir: runtime.RuntimeDir}
-		if _, _, err := ensureInitialRevision(ctx, revisionStore, validator); err != nil {
+		_, defaults, err := ensureInitialRevision(ctx, revisionStore, validator)
+		if err != nil {
 			log.Fatal(err)
 		}
 		manager = adminruntime.NewManager(db, revisionStore, validator, runtime.ERPCBinary, runtime.RuntimeDir, runtime.ShutdownTimeout)
-		managed = &server.ManagedDependencies{Revisions: revisionStore, Validator: validator, Runtime: manager}
+		managed = &server.ManagedDependencies{Revisions: revisionStore, Validator: validator, Defaults: defaults, Runtime: manager}
 	} else {
 		fileAccounts, err := adminauth.NewStore(runtime.AuthFile)
 		if err != nil {
