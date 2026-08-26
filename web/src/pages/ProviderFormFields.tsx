@@ -8,10 +8,11 @@ type ProviderFormFieldsProps = {
   networkMode: NetworkMode;
   showVendorSelector: boolean;
   allowCustomVendor: boolean;
+  customProviderAccessMode: string;
   onVendorSelected: (vendor: string) => void | Promise<void>;
 };
 
-export function ProviderFormFields({ vendor, networkMode, showVendorSelector, allowCustomVendor, onVendorSelected }: ProviderFormFieldsProps) {
+export function ProviderFormFields({ vendor, networkMode, showVendorSelector, allowCustomVendor, customProviderAccessMode, onVendorSelected }: ProviderFormFieldsProps) {
   const definition = providerDefinition(vendor);
   const knownOptions = providerOptions();
   const vendorOptions = !vendor || knownOptions.some((option) => option.value === vendor)
@@ -27,7 +28,7 @@ export function ProviderFormFields({ vendor, networkMode, showVendorSelector, al
     >
       {allowCustomVendor
         ? <AutoComplete options={knownOptions} onSelect={(value) => void onVendorSelected(String(value))} onBlur={(event) => void onVendorSelected((event.target as HTMLInputElement).value)} placeholder="输入厂商代码，例如 future-provider" filterOption={(input, option) => String(option?.label || option?.value || "").toLowerCase().includes(input.toLowerCase())} />
-        : <Select showSearch optionFilterProp="label" options={vendorOptions} onChange={(value) => void onVendorSelected(String(value))} placeholder="选择 eRPC 厂商" />}
+        : <Select showSearch optionFilterProp="label" options={[...vendorOptions, { value: customProviderAccessMode, label: "其他 / 未收录 eRPC 厂商" }]} onChange={(value) => void onVendorSelected(String(value))} placeholder="选择 eRPC 厂商" />}
     </Form.Item>}
 
     {definition.fields.length === 0

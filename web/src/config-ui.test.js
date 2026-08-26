@@ -81,15 +81,18 @@ describe("field-only configuration UI", () => {
     expect(providerFields).toMatch(/通常无需修改/);
     expect(providerFields).toMatch(/alchemy-main-evm:56/);
     expect(providerFields).toMatch(/allowCustomVendor/);
+    expect(providerFields).toMatch(/customProviderAccessMode/);
   });
 
   it("replaces vendor settings and keeps payload and revision on one snapshot", () => {
     expect(upstreams).toMatch(/form\.setFieldValue\("settings",/);
+    expect(upstreams).toMatch(/knownProviderOptions\.some\(\(option\) => option\.value === value\) \? value : customProviderAccessMode/);
     expect(upstreams).toMatch(/if \(previousVendor === nextVendor\) return/);
     expect(upstreams).toMatch(/const \[editingSnapshot, setEditingSnapshot\]/);
     expect(upstreams).toMatch(/baseRevision: base\.revision/);
     expect(upstreams).toMatch(/await current\.refetch\(\)/);
     expect(upstreams).toMatch(/当前配置版本 v\{latestConfig\?\.revision\}/);
+    expect(upstreams).toMatch(/厂商代码不能使用系统保留值/);
     expect(upstreams).not.toMatch(/loadedRevision/);
   });
 });

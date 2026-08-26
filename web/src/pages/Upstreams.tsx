@@ -141,6 +141,7 @@ export function UpstreamsPage() {
       return;
     }
     selectedVendor.current = value;
+    form.setFieldValue("accessMode", knownProviderOptions.some((option) => option.value === value) ? value : customProviderAccessMode);
     form.setFieldValue("vendor", value);
     replaceProviderSettings(value);
   }
@@ -150,6 +151,11 @@ export function UpstreamsPage() {
     const previousVendor = selectedVendor.current;
     if (!nextVendor) {
       form.setFieldValue("vendor", previousVendor);
+      return;
+    }
+    if (nextVendor === customProviderAccessMode && accessMode === customProviderAccessMode) {
+      form.setFieldValue("vendor", previousVendor);
+      apiMessage.error("厂商代码不能使用系统保留值");
       return;
     }
     if (previousVendor === nextVendor) return;
@@ -170,7 +176,15 @@ export function UpstreamsPage() {
         cancelText: "取消",
       });
       if (confirmed) {
+        if (nextVendor === customProviderAccessMode) {
+          selectedVendor.current = "";
+          form.setFieldValue("accessMode", customProviderAccessMode);
+          form.setFieldValue("vendor", "");
+          replaceProviderSettings("");
+          return;
+        }
         selectedVendor.current = nextVendor;
+        form.setFieldValue("accessMode", knownProviderOptions.some((option) => option.value === nextVendor) ? nextVendor : customProviderAccessMode);
         form.setFieldValue("vendor", nextVendor);
         replaceProviderSettings(nextVendor);
       }
@@ -211,6 +225,7 @@ export function UpstreamsPage() {
       let next: ConfigPayload;
       if (providerMode) {
         const providerVendor = String(values.vendor || (values.accessMode === customProviderAccessMode ? "" : values.accessMode) || "").trim();
+        if (providerVendor === customProviderAccessMode) throw new Error("厂商代码不能使用系统保留值");
         const input = {
           projectIndex: values.projectIndex,
           id: values.id,
@@ -291,7 +306,7 @@ export function UpstreamsPage() {
         {accessMode === "custom" ? <>
           <Form.Item name="type" label="协议类型" extra="节点协议类型（如 evm、svm），不是 RPC 服务厂商。"><AutoComplete allowClear options={[{ value: "evm", label: "EVM" }, { value: "svm", label: "SVM" }]} placeholder="例如 evm、svm；也可填写 eRPC 支持的其他类型" /></Form.Item>
           <Form.Item name="endpoint" label="RPC 地址" extra="可填写任意 HTTP/HTTPS RPC，包括完整的 Alchemy RPC URL。" rules={[{ required: true, whitespace: true, message: "请输入 RPC 地址" }]}><Input.Password visibilityToggle autoComplete="off" /></Form.Item>
-        </> : <ProviderFormFields vendor={vendor} networkMode={networkMode} showVendorSelector={editing !== "new" || accessMode === customProviderAccessMode} allowCustomVendor={accessMode === customProviderAccessMode || !knownProviderOptions.some((option) => option.value === vendor)} onVendorSelected={selectVendor} />}
+        </> : <ProviderFormFields vendor={vendor} networkMode={networkMode} showVendorSelector={editing !== "new" || accessMode === customProviderAccessMode} allowCustomVendor={accessMode === customProviderAccessMode || !knownProviderOptions.some((option) => option.value === vendor)} customProviderAccessMode={customProviderAccessMode} onVendorSelected={selectVendor} />}
       </Form>
     </Drawer>
   </section>;
