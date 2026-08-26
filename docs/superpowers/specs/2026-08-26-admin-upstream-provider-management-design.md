@@ -9,9 +9,11 @@ and eRPC's existing provider integrations from one page, without writing YAML.
 ## Confirmed Scope
 
 - Keep one `上游管理` page and one unified table.
-- The add drawer starts with a searchable `接入方式` selector:
+- The add drawer starts with a searchable, Chinese-grouped `接入方式` selector:
   - `自定义 RPC 节点`
+  - `公共节点仓库`
   - one option for every vendor currently registered by eRPC
+  - `其他 / 未收录 eRPC 厂商` as an explicit compatibility path
 - Store fixed endpoints in `projects[].upstreams[]`.
 - Store vendor integrations in `projects[].providers[]`.
 - Support create, read, update, and delete for both record types.
@@ -32,8 +34,9 @@ vendors:
 `repository`, `superchain`, `tenderly`, `chainstack`, `onfinality`, `erpc`,
 `blockpi`, `ankr`, `routemesh`, `blockdaemon`, and `satelink`.
 
-The UI catalog provides these values as searchable suggestions, not as a closed
-TypeScript enum. The input retains an unknown-vendor fallthrough so a newer eRPC
+The UI catalog provides these values as searchable grouped options, not as a
+closed TypeScript enum. The default workflow is a dropdown; its explicit
+`其他 / 未收录 eRPC 厂商` option reveals a vendor-code input so a newer eRPC
 vendor can be configured before this Web build adds tailored labels. eRPC's
 existing validation remains authoritative.
 
@@ -55,8 +58,10 @@ The table combines fixed upstream and provider rows and shows:
 Use Ant Design's built-in pagination with a default page size of 20 so hundreds
 of nodes remain usable without custom list virtualization.
 
-The primary action is `添加上游`. Its drawer starts with `接入方式`; selecting
-an option switches the form below it. Editing opens the same drawer. A provider's
+The primary action is `添加上游`. Its drawer starts with a Chinese grouped
+`接入方式` dropdown; selecting an option switches the form below it. Choosing
+the explicit unknown-vendor option reveals a code input, while ordinary vendor
+selection remains a dropdown. Editing opens the same drawer. A provider's
 vendor remains editable. Converting an existing fixed node into a provider, or
 the reverse, is intentionally not supported: delete the incorrect record and
 add the correct type so incompatible fields are never discarded silently.

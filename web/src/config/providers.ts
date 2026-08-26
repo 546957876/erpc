@@ -189,6 +189,12 @@ export function providerOptions() {
   return providerCatalog.map(({ value, label }) => ({ value, label }));
 }
 
+export function providerDefaultSettings(value: string): Record<string, unknown> {
+  return Object.fromEntries(providerDefinition(value).fields
+    .filter((field) => field.defaultText !== undefined)
+    .map((field) => [field.key, field.defaultText]));
+}
+
 export function providerDefinition(value: string): ProviderDefinition {
   return providerCatalog.find((item) => item.value === value) || { value, label: value, fields: [] };
 }

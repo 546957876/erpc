@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const advanced = readFileSync(new URL("./pages/Advanced.tsx", import.meta.url), "utf8");
 const settings = readFileSync(new URL("./pages/Settings.tsx", import.meta.url), "utf8");
 const upstreams = readFileSync(new URL("./pages/Upstreams.tsx", import.meta.url), "utf8");
+const providerFields = readFileSync(new URL("./pages/ProviderFormFields.tsx", import.meta.url), "utf8");
 const configFields = readFileSync(new URL("./config/ConfigFields.tsx", import.meta.url), "utf8");
 
 describe("field-only configuration UI", () => {
@@ -59,5 +60,36 @@ describe("field-only configuration UI", () => {
     expect(upstreams).toMatch(/随机生成/);
     expect(upstreams).toMatch(/useValidateConfig/);
     expect(upstreams).toMatch(/validate\.mutateAsync/);
+  });
+
+  it("uses a Chinese grouped selector and binds the generated name to the input", () => {
+    const idStart = upstreams.indexOf('label="名称（唯一标识）"');
+    const accessModeField = upstreams.slice(upstreams.indexOf('name="accessMode"'), idStart);
+    const idField = upstreams.slice(idStart, upstreams.indexOf('{accessMode === "custom"', idStart));
+
+    expect(accessModeField).toMatch(/<Select/);
+    expect(accessModeField).not.toMatch(/<AutoComplete/);
+    expect(upstreams).toMatch(/label: "直接接入"/);
+    expect(upstreams).toMatch(/label: "公共节点"/);
+    expect(upstreams).toMatch(/label: "eRPC 内置厂商"/);
+    expect(upstreams).toMatch(/其他 \/ 未收录 eRPC 厂商/);
+    expect(idField).toMatch(/<Form\.Item name="id" noStyle/);
+  });
+
+  it("explains the generated node name format in Chinese", () => {
+    expect(providerFields).toMatch(/自动生成的节点名称格式/);
+    expect(providerFields).toMatch(/通常无需修改/);
+    expect(providerFields).toMatch(/alchemy-main-evm:56/);
+    expect(providerFields).toMatch(/allowCustomVendor/);
+  });
+
+  it("replaces vendor settings and keeps payload and revision on one snapshot", () => {
+    expect(upstreams).toMatch(/form\.setFieldValue\("settings",/);
+    expect(upstreams).toMatch(/if \(previousVendor === nextVendor\) return/);
+    expect(upstreams).toMatch(/const \[editingSnapshot, setEditingSnapshot\]/);
+    expect(upstreams).toMatch(/baseRevision: base\.revision/);
+    expect(upstreams).toMatch(/await current\.refetch\(\)/);
+    expect(upstreams).toMatch(/当前配置版本 v\{latestConfig\?\.revision\}/);
+    expect(upstreams).not.toMatch(/loadedRevision/);
   });
 });

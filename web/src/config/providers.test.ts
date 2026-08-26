@@ -7,6 +7,7 @@ import {
   encodeProviderOverrides,
   listProviders,
   mergeProviderSettings,
+  providerDefaultSettings,
   providerDefinition,
   providerOptions,
   removeProvider,
@@ -70,6 +71,12 @@ describe("厂商目录", () => {
       .toBe("https://app-api.alchemy.com/trpc/config.getNetworkConfig");
     expect(providerDefinition("superchain").fields.find((field) => field.key === "registryUrl")?.defaultText)
       .toBe("https://raw.githubusercontent.com/ethereum-optimism/superchain-registry/main/chainList.json");
+  });
+
+  it("选择厂商时初始化可配置的源码默认值", () => {
+    expect(providerDefaultSettings("repository")).toEqual({ repositoryUrl: "https://evm-public-endpoints.erpc.cloud" });
+    expect(providerDefaultSettings("alchemy")).toEqual({ chainsUrl: "https://app-api.alchemy.com/trpc/config.getNetworkConfig" });
+    expect(providerDefaultSettings("future-vendor")).toEqual({});
   });
 });
 

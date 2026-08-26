@@ -6,26 +6,29 @@ import { providerDefinition, providerOptions, type NetworkMode, type ProviderSet
 type ProviderFormFieldsProps = {
   vendor: string;
   networkMode: NetworkMode;
+  showVendorSelector: boolean;
+  allowCustomVendor: boolean;
   onVendorSelected: (vendor: string) => void | Promise<void>;
 };
 
-export function ProviderFormFields({ vendor, networkMode, onVendorSelected }: ProviderFormFieldsProps) {
+export function ProviderFormFields({ vendor, networkMode, showVendorSelector, allowCustomVendor, onVendorSelected }: ProviderFormFieldsProps) {
   const definition = providerDefinition(vendor);
+  const knownOptions = providerOptions();
+  const vendorOptions = !vendor || knownOptions.some((option) => option.value === vendor)
+    ? knownOptions
+    : [{ value: vendor, label: `现有未收录厂商：${vendor}` }, ...knownOptions];
 
   return <>
-    <Form.Item
+    {showVendorSelector && <Form.Item
       name="vendor"
-      label={<HelpLabel title="RPC 厂商" help="选择 eRPC 已支持的厂商；也可以输入未来新增或私有厂商名称，再通过扩展参数配置。" />}
-      rules={[{ required: true, whitespace: true, message: "请选择或输入 RPC 厂商" }]}
+      label={<HelpLabel title={allowCustomVendor ? "厂商代码" : "更换 eRPC 厂商"} help={allowCustomVendor ? "填写当前 eRPC 已支持、但本页面尚未收录的厂商代码；保存前仍会由 eRPC 校验。" : "选择 eRPC 已支持的厂商。切换后会清空旧厂商的密钥和专用参数。"} />}
+      extra={allowCustomVendor ? "通常从上方下拉选择；仅在 eRPC 新增厂商尚未更新本页面时填写此项。" : undefined}
+      rules={[{ required: true, whitespace: true, message: "请输入或选择 RPC 厂商" }]}
     >
-      <AutoComplete
-        options={providerOptions()}
-        onSelect={(value) => void onVendorSelected(String(value))}
-        onBlur={(event) => void onVendorSelected((event.target as HTMLInputElement).value)}
-        placeholder="选择厂商或输入厂商名称"
-        filterOption={(input, option) => String(option?.label || option?.value || "").toLowerCase().includes(input.toLowerCase())}
-      />
-    </Form.Item>
+      {allowCustomVendor
+        ? <AutoComplete options={knownOptions} onSelect={(value) => void onVendorSelected(String(value))} onBlur={(event) => void onVendorSelected((event.target as HTMLInputElement).value)} placeholder="输入厂商代码，例如 future-provider" filterOption={(input, option) => String(option?.label || option?.value || "").toLowerCase().includes(input.toLowerCase())} />
+        : <Select showSearch optionFilterProp="label" options={vendorOptions} onChange={(value) => void onVendorSelected(String(value))} placeholder="选择 eRPC 厂商" />}
+    </Form.Item>}
 
     {definition.fields.length === 0
       ? <Alert type="info" showIcon message="这是未收录的厂商" description="请在“扩展厂商参数”中按该厂商要求填写参数。eRPC 的最终配置校验仍会在保存前执行。" />
@@ -77,8 +80,8 @@ export function ProviderFormFields({ vendor, networkMode, onVendorSelected }: Pr
 
     <Form.Item
       name="upstreamIdTemplate"
-      label={<HelpLabel title="生成节点名称模板" help="eRPC 用此模板为厂商发现的每个 RPC 节点生成唯一名称。可使用 <PROVIDER>、<NETWORK>、<VENDOR> 等 eRPC 支持的占位符。" />}
-      extra="推荐：<PROVIDER>-<NETWORK>"
+      label={<HelpLabel title="自动生成的节点名称格式" help="eRPC 会把 <PROVIDER> 替换为上面的厂商实例名称，把 <NETWORK> 替换为网络标识。还可使用 <VENDOR>（厂商代码）和 <EVM_CHAIN_ID>（数字链 ID）。" />}
+      extra="通常无需修改。默认值 <PROVIDER>-<NETWORK>：名称 alchemy-main、网络 evm:56 会生成 alchemy-main-evm:56。"
       rules={[{ required: true, whitespace: true, message: "请输入生成节点名称模板" }]}
     ><Input placeholder="<PROVIDER>-<NETWORK>" /></Form.Item>
 
