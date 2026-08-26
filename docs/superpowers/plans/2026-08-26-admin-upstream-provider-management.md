@@ -10,6 +10,16 @@
 
 ---
 
+## 实施状态（2026-08-26）
+
+- [x] Task 1：24 个现有 eRPC 厂商目录、开放厂商回退和随机 ID。
+- [x] Task 2：完整 ProviderConfig CRUD、未知字段保留、160 个厂商实例回归。
+- [x] Task 3：复用生成的 UpstreamConfig 字段渲染器处理覆盖配置。
+- [x] Task 4：统一上游/厂商表格、条件表单、保存前校验、分页和中文帮助。
+- [x] Task 5：全量 Web 测试、生产构建和最终差异复核。
+
+---
+
 ### Task 1: Vendor Catalog And Random IDs
 
 **Files:**

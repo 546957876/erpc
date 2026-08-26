@@ -205,6 +205,31 @@ describe("厂商设置转换", () => {
       tagLabels: ["archive"],
     });
   });
+
+  it("把已有标签和方法积分转换成可编辑表单值", () => {
+    const split = splitProviderSettings("quicknode", {
+      apiKey: "plain",
+      tagIds: 7,
+      tagLabels: "archive",
+      creditUnits: { eth_call: 20, eth_getLogs: 30 },
+    });
+
+    expect(split.known).toEqual({
+      apiKey: "plain",
+      tagIds: ["7"],
+      tagLabels: ["archive"],
+      creditUnits: [
+        { method: "eth_call", units: 20 },
+        { method: "eth_getLogs", units: 30 },
+      ],
+    });
+    expect(mergeProviderSettings("quicknode", split.known, split.extra)).toEqual({
+      apiKey: "plain",
+      tagIds: [7],
+      tagLabels: ["archive"],
+      creditUnits: { eth_call: 20, eth_getLogs: 30 },
+    });
+  });
 });
 
 describe("Provider 覆盖配置转换", () => {

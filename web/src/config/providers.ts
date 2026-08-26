@@ -331,9 +331,17 @@ export function decodeExtraSettings(rows: ExtraSettingRow[]): Record<string, unk
 }
 
 export function splitProviderSettings(vendor: string, settings: Record<string, unknown>) {
-  const knownKeys = new Set(providerDefinition(vendor).fields.map((field) => field.key));
+  const fields = providerDefinition(vendor).fields;
+  const knownKeys = new Set(fields.map((field) => field.key));
   const known: Record<string, unknown> = {};
-  for (const key of knownKeys) if (Object.hasOwn(settings, key)) known[key] = structuredClone(settings[key]);
+  for (const field of fields) {
+    if (!Object.hasOwn(settings, field.key)) continue;
+    const value = settings[field.key];
+    if (field.kind === "tags" || field.kind === "number-tags") known[field.key] = stringList(value);
+    else if (field.kind === "credit-units" && !Array.isArray(value)) {
+      known[field.key] = Object.entries(record(value)).map(([method, units]) => ({ method, units }));
+    } else known[field.key] = structuredClone(value);
+  }
   return { known, extra: encodeExtraSettings(settings, knownKeys) };
 }
 

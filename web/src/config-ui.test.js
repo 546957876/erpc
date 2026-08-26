@@ -40,9 +40,24 @@ describe("field-only configuration UI", () => {
   });
 
   it("explains upstream identity and accepts vendor-neutral RPC addresses", () => {
-    expect(upstreams).toMatch(/节点名称（唯一标识）/);
+    expect(upstreams).toMatch(/名称（唯一标识）/);
     expect(upstreams).toMatch(/不是链 ID/);
     expect(upstreams).toMatch(/不是 RPC 服务厂商/);
     expect(upstreams).toMatch(/任意 HTTP\/HTTPS RPC/);
+  });
+
+  it("manages direct RPC nodes and vendor providers in one table", () => {
+    expect(upstreams).toMatch(/listProviders/);
+    expect(upstreams).toMatch(/ProviderFormFields/);
+    expect(upstreams).toMatch(/自定义 RPC 节点/);
+    expect(upstreams).toMatch(/providerOptions/);
+    expect(upstreams).toMatch(/defaultPageSize:\s*20/);
+  });
+
+  it("generates project-unique identifiers and validates before saving", () => {
+    expect(upstreams).toMatch(/randomUniqueId/);
+    expect(upstreams).toMatch(/随机生成/);
+    expect(upstreams).toMatch(/useValidateConfig/);
+    expect(upstreams).toMatch(/validate\.mutateAsync/);
   });
 });
