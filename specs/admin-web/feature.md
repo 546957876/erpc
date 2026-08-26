@@ -196,8 +196,12 @@ Required pages:
 
 - `运行概览`: process status, start/stop/restart, latest/running revision,
   binary version/commit, ports, last error, and topology summary;
+- `节点健康`: target/project/network/upstream topology, project-scoped health
+  timing, immediate cordon controls, health detail, and running-upstream tests;
+- `RPC 调试`: saved-revision direct tests and running eRPC tests with open
+  network/method input, request URL/commands, and response diagnostics;
 - `上游管理`: project-scoped upstream table, add/edit/delete, and separate
-  temporary cordon controls;
+  saved-revision RPC tests;
 - `服务设置`: log level, cluster key, IPv4/IPv6 HTTP, gRPC, Metrics, Admin
   auth, health checks, proxy pools, tracing, and restart-required indicators;
 - `项目与网络`: project, provider, network, architecture, chain, auth, and
@@ -291,6 +295,8 @@ write surface:
 | `GET /api/config/revisions` | List revision metadata |
 | `GET /api/config/revisions/{revision}` | Read one full revision |
 | `POST /api/config/revisions/{revision}/restore` | Copy an old revision into a new latest revision |
+| `POST /api/config/upstreams/test` | Test one static HTTP(S) upstream from an exact saved revision with its server-side `jsonRpc.headers` |
+| `POST /api/targets/{targetId}/rpc-test` | Test an open network/method through a running eRPC target with an optional one-request project secret |
 
 Upstream forms use `GET/POST /api/config`; separate persistent upstream CRUD
 endpoints would duplicate the same revision logic and are intentionally omitted.
@@ -317,3 +323,9 @@ endpoints would duplicate the same revision logic and are intentionally omitted.
 11. Untouched controls display effective defaults without persisting them as
     overrides; editing and restoring a field visibly switches between `自定义`
     and `系统默认`.
+12. Operators can test a newly saved static RPC endpoint before restart and
+    can request a cache-bypassed, selected-upstream test through running eRPC;
+    the UI reports whether eRPC actually honored that directive.
+13. Node health exposes EVM polling, selection evaluation, score-window, and
+    SVM debounce timing per project without changing eRPC core configuration
+    semantics.

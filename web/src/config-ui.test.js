@@ -6,6 +6,8 @@ const settings = readFileSync(new URL("./pages/Settings.tsx", import.meta.url), 
 const upstreams = readFileSync(new URL("./pages/Upstreams.tsx", import.meta.url), "utf8");
 const providerFields = readFileSync(new URL("./pages/ProviderFormFields.tsx", import.meta.url), "utf8");
 const configFields = readFileSync(new URL("./config/ConfigFields.tsx", import.meta.url), "utf8");
+const app = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
+const rpcDebug = readFileSync(new URL("./pages/RpcDebug.tsx", import.meta.url), "utf8");
 
 describe("field-only configuration UI", () => {
   it("never asks the operator to edit or import YAML", () => {
@@ -94,5 +96,41 @@ describe("field-only configuration UI", () => {
     expect(upstreams).toMatch(/当前配置版本 v\{latestConfig\?\.revision\}/);
     expect(upstreams).toMatch(/厂商代码不能使用系统保留值/);
     expect(upstreams).not.toMatch(/loadedRevision/);
+  });
+
+  it("provides Chinese node health and RPC debug routes while preserving old links", () => {
+    expect(app).toMatch(/to="\/health">节点健康/);
+    expect(app).toMatch(/to="\/rpc-debug">RPC 调试/);
+    expect(app).toMatch(/path="\/topology\/:targetId" element=\{<LegacyTopologyRedirect/);
+    expect(app).toMatch(/path="\/targets\/\*" element=\{<Navigate to="\/health"/);
+  });
+
+  it("keeps RPC networks and methods open in both test modes", () => {
+    expect(rpcDebug).toMatch(/运行中 eRPC/);
+    expect(rpcDebug).toMatch(/已保存节点/);
+    expect(rpcDebug).toMatch(/项目访问密钥（可选）/);
+    expect(rpcDebug).toMatch(/allowClientDirectives/);
+    expect(rpcDebug).toMatch(/<AutoComplete/);
+    expect(rpcDebug).toMatch(/name="method"/);
+    expect(rpcDebug).toMatch(/useSavedUpstreamTest/);
+    expect(rpcDebug).toMatch(/useRuntimeRPCTest/);
+    expect(rpcDebug).toMatch(/PowerShell/);
+    expect(rpcDebug).toMatch(/curl\.exe/);
+    expect(rpcDebug).toMatch(/命令中包含真实密钥/);
+    expect(rpcDebug).toMatch(/requestSequence/);
+  });
+
+  it("exposes editable health timing and one-click upstream probes", () => {
+    expect(app).toMatch(/EVM 状态轮询周期/);
+    expect(app).toMatch(/选路重算周期/);
+    expect(app).toMatch(/健康指标统计窗口/);
+    expect(app).toMatch(/SVM 状态轮询防抖/);
+    expect(app).toMatch(/disabled=\{!healthDirty\}/);
+    expect(app).toMatch(/放弃未保存的健康配置/);
+    expect(app).toMatch(/项目需要访问密钥/);
+    expect(app).toMatch(/未测试/);
+    expect(app).toMatch(/aria-label="测试 RPC"/);
+    expect(upstreams).toMatch(/useSavedUpstreamTest/);
+    expect(upstreams).toMatch(/aria-label="测试 RPC"/);
   });
 });

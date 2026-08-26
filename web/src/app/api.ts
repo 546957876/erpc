@@ -36,6 +36,9 @@ export type ConfigRevision = {
   createdAt?: string;
 };
 export type ValidationResult = { valid: boolean; errors: string[]; warnings: string[]; notices: string[]; report?: unknown };
+export type SavedUpstreamTestRequest = { revision: number; projectId: string; upstreamId: string; method: string; params: unknown };
+export type TargetRpcTestRequest = { projectId: string; networkId: string; upstreamId?: string; projectSecret?: string; method: string; params: unknown };
+export type RpcTestResult = { httpStatus: number; durationMs: number; body: string; upstream?: string; upstreams?: string; cache?: string };
 
 export function normalizeValidationResult(value: Partial<ValidationResult> | null | undefined): ValidationResult {
   return {
@@ -54,6 +57,22 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   const payload = (await response.json().catch(() => ({}))) as { error?: { message?: string } };
   if (!response.ok) throw new Error(payload.error?.message || `Request failed (${response.status})`);
   return payload as T;
+}
+
+export function testSavedUpstream(input: SavedUpstreamTestRequest): Promise<RpcTestResult> {
+  return apiRequest("/api/config/upstreams/test", { method: "POST", body: JSON.stringify(input) });
+}
+
+export function testTargetRpc(targetId: string, input: TargetRpcTestRequest): Promise<RpcTestResult> {
+  return apiRequest(`/api/targets/${encodeURIComponent(targetId)}/rpc-test`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function useSavedUpstreamTest() {
+  return useMutation({ mutationFn: testSavedUpstream });
+}
+
+export function useRuntimeRPCTest(targetId: string) {
+  return useMutation({ mutationFn: (input: TargetRpcTestRequest) => testTargetRpc(targetId, input) });
 }
 
 export function getAuthStatus(): Promise<AuthStatus> {

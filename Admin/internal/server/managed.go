@@ -7,10 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/erpc/admin/internal/configdoc"
+	"github.com/erpc/admin/internal/erpc"
 	"github.com/erpc/admin/internal/revisions"
 	adminruntime "github.com/erpc/admin/internal/runtime"
 )
@@ -45,6 +48,17 @@ type configInput struct {
 	YAML         string          `json:"yaml"`
 	Payload      json.RawMessage `json:"payload"`
 	BaseRevision int64           `json:"baseRevision"`
+}
+
+var (
+	errSavedTargetNotFound  = errors.New("saved upstream target not found")
+	errSavedTargetAmbiguous = errors.New("saved upstream target is ambiguous")
+	errSavedEndpointInvalid = errors.New("saved upstream endpoint is invalid")
+)
+
+type savedUpstreamTestInput struct {
+	Revision int64 `json:"revision"`
+	erpc.TestRequest
 }
 
 func (s *Server) handleManaged(w http.ResponseWriter, r *http.Request) bool {
@@ -82,6 +96,9 @@ func (s *Server) handleManaged(w http.ResponseWriter, r *http.Request) bool {
 			s.writeJSON(w, http.StatusOK, result)
 		}
 		return true
+	case path == "/api/config/upstreams/test" && r.Method == http.MethodPost:
+		s.testSavedUpstream(w, r)
+		return true
 	case path == "/api/config/current" && r.Method == http.MethodGet:
 		revision, err := s.managed.Revisions.Latest(r.Context())
 		if errors.Is(err, sql.ErrNoRows) {
@@ -116,6 +133,120 @@ func (s *Server) handleManaged(w http.ResponseWriter, r *http.Request) bool {
 	default:
 		return false
 	}
+}
+
+func (s *Server) testSavedUpstream(w http.ResponseWriter, r *http.Request) {
+	var input savedUpstreamTestInput
+	if err := s.decodeBody(r, &input); err != nil || input.Revision <= 0 || strings.TrimSpace(input.ProjectID) == "" || strings.TrimSpace(input.UpstreamID) == "" || strings.TrimSpace(input.Method) == "" {
+		s.writeError(w, http.StatusBadRequest, "RPC 测试请求无效")
+		return
+	}
+	revision, err := s.managed.Revisions.Get(r.Context(), input.Revision)
+	if errors.Is(err, sql.ErrNoRows) {
+		s.writeError(w, http.StatusNotFound, "配置版本不存在")
+		return
+	}
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "无法读取配置版本")
+		return
+	}
+	target, err := resolveSavedUpstreamTarget(revision.Payload, input.ProjectID, input.UpstreamID)
+	switch {
+	case errors.Is(err, errSavedTargetNotFound):
+		s.writeError(w, http.StatusNotFound, "指定的项目或上游不存在")
+		return
+	case errors.Is(err, errSavedTargetAmbiguous):
+		s.writeError(w, http.StatusConflict, "项目或上游标识重复，无法确定测试目标")
+		return
+	case errors.Is(err, errSavedEndpointInvalid):
+		s.writeError(w, http.StatusUnprocessableEntity, "该上游没有可直连测试的 HTTP(S) 地址")
+		return
+	case err != nil:
+		s.writeError(w, http.StatusInternalServerError, "配置版本内容无效")
+		return
+	}
+	result, err := erpc.TestEndpoint(r.Context(), target.Endpoint, target.Headers, input.TestRequest)
+	s.respondRPCTest(w, result, err)
+}
+
+type savedUpstreamTarget struct {
+	Endpoint string
+	Headers  map[string]string
+}
+
+type savedJSONRPCTargetConfig struct {
+	Headers map[string]string `json:"headers"`
+}
+
+type savedUpstreamTargetConfig struct {
+	ID       string                    `json:"id"`
+	Endpoint string                    `json:"endpoint"`
+	JSONRPC  *savedJSONRPCTargetConfig `json:"jsonRpc"`
+}
+
+func resolveSavedUpstreamTarget(payload json.RawMessage, projectID, upstreamID string) (savedUpstreamTarget, error) {
+	var config struct {
+		Projects []struct {
+			ID               string                      `json:"id"`
+			UpstreamDefaults *savedUpstreamTargetConfig  `json:"upstreamDefaults"`
+			Upstreams        []savedUpstreamTargetConfig `json:"upstreams"`
+		} `json:"projects"`
+	}
+	if err := json.Unmarshal(payload, &config); err != nil {
+		return savedUpstreamTarget{}, fmt.Errorf("decode saved configuration: %w", err)
+	}
+	projects := make([]int, 0, 1)
+	for index := range config.Projects {
+		if config.Projects[index].ID == projectID {
+			projects = append(projects, index)
+		}
+	}
+	if len(projects) == 0 {
+		return savedUpstreamTarget{}, errSavedTargetNotFound
+	}
+	if len(projects) > 1 {
+		return savedUpstreamTarget{}, errSavedTargetAmbiguous
+	}
+	var targets []savedUpstreamTarget
+	project := config.Projects[projects[0]]
+	for _, upstream := range project.Upstreams {
+		if upstream.ID == upstreamID {
+			endpoint := os.ExpandEnv(upstream.Endpoint)
+			if endpoint == "" && project.UpstreamDefaults != nil {
+				endpoint = os.ExpandEnv(project.UpstreamDefaults.Endpoint)
+			}
+			target := savedUpstreamTarget{Endpoint: endpoint}
+			if upstream.JSONRPC != nil {
+				target.Headers = expandEnvironment(upstream.JSONRPC.Headers)
+			} else if project.UpstreamDefaults != nil && project.UpstreamDefaults.JSONRPC != nil {
+				target.Headers = expandEnvironment(project.UpstreamDefaults.JSONRPC.Headers)
+			}
+			targets = append(targets, target)
+		}
+	}
+	if len(targets) == 0 {
+		return savedUpstreamTarget{}, errSavedTargetNotFound
+	}
+	if len(targets) > 1 {
+		return savedUpstreamTarget{}, errSavedTargetAmbiguous
+	}
+	parsed, err := url.Parse(strings.TrimSpace(targets[0].Endpoint))
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+		return savedUpstreamTarget{}, errSavedEndpointInvalid
+	}
+	targets[0].Endpoint = parsed.String()
+	return targets[0], nil
+}
+
+func expandEnvironment(values map[string]string) map[string]string {
+	if values == nil {
+		return nil
+	}
+	expanded := make(map[string]string, len(values))
+	for key, value := range values {
+		expanded[os.ExpandEnv(key)] = os.ExpandEnv(value)
+	}
+	return expanded
 }
 
 func (s *Server) decodeConfigInput(w http.ResponseWriter, r *http.Request) (configdoc.Document, configInput, bool) {

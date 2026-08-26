@@ -39,9 +39,13 @@ test either the running eRPC pool or one running upstream.
 ```
 
 The handler loads the exact revision, finds one unambiguous project and static
-upstream, validates that its endpoint is an absolute HTTP(S) URL, and sends the
-JSON-RPC request directly. Provider instances are not expanded by Admin and
-must be tested through running eRPC after their revision is applied.
+upstream, resolves the endpoint fallback and all-or-nothing `jsonRpc` block
+inheritance from `upstreamDefaults` used by eRPC, expands environment variables
+with the Admin process environment, validates the endpoint as an
+absolute HTTP(S) URL, and sends the JSON-RPC request directly. Saved headers
+stay server-side and are never returned to the browser. Provider instances are
+not expanded by Admin and must be tested through running eRPC after their
+revision is applied.
 
 The browser cannot submit an arbitrary URL. This keeps the operation limited to
 the authenticated operator's saved configuration. Private and loopback targets
@@ -56,18 +60,22 @@ remain valid because local/internal RPC endpoints are an intended deployment.
   "projectId": "main",
   "networkId": "evm:56",
   "upstreamId": "bsc-mainnet-1",
+  "projectSecret": "optional-project-secret",
   "method": "eth_chainId",
   "params": []
 }
 ```
 
-`upstreamId` is optional. The Admin client sends `networkId` in the JSON-RPC
+`upstreamId` and `projectSecret` are optional. A supplied project secret is used
+only for this data-plane request; the target's Admin credential is never reused
+outside `/admin`. The Admin client sends `networkId` in the JSON-RPC
 body, which eRPC natively supports and which preserves unknown architectures
 and multi-part network identifiers. When an upstream is requested, the client
 adds `X-ERPC-Use-Upstream`; it always adds
 `X-ERPC-Skip-Cache-Read: true`. The response reports the actual diagnostic
 headers so the UI can distinguish a confirmed match from a directive that the
-project configuration did not allow.
+project configuration did not allow. Both directives remain subject to the
+project's `allowClientDirectives` policy.
 
 Both APIs return HTTP status, duration, response body text, and the safe eRPC
 diagnostic headers `X-ERPC-Upstream`, `X-ERPC-Upstreams`, and `X-ERPC-Cache`.
@@ -83,7 +91,9 @@ The existing target list and target detail become `节点健康`. Old
 The target detail keeps the current project/network/upstream table, health
 drawer, and cordon controls. It adds:
 
-- a quick test action for a running upstream;
+- a quick test action for a running upstream, initially shown as `未测试` and
+  marked successful only when the response diagnostic identifies that exact
+  upstream;
 - project-scoped health timing controls backed by the current revision:
   - EVM state poll interval;
   - selection-policy evaluation interval;
@@ -116,6 +126,8 @@ The page uses a segmented control for the two test sources. It provides:
 - a derived public URL in the standard
   `/<project>/<architecture>/<network>` form;
 - copyable URL, PowerShell request, and curl request;
+- an optional project Secret input; copied commands use `<PROJECT_SECRET>` by
+  default and include the real value only after an explicit switch;
 - result status, duration, matched upstream diagnostics, and formatted or raw
   response text.
 

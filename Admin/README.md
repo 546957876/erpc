@@ -36,3 +36,12 @@ pnpm dev -- --port 8180
 
 所有 eRPC 配置都通过中文字段表单维护。Admin 在保存和启动时内部生成
 YAML，用户不需要编写、粘贴或理解 YAML。
+
+## RPC 测试
+
+登录后的 Web 控制台提供两种测试，均由 Admin 服务端发起请求：
+
+- `POST /api/config/upstreams/test`：从指定配置版本读取静态上游的 HTTP/HTTPS 地址及 `jsonRpc.headers` 并直连测试；字段可继承 `upstreamDefaults`，环境变量按 Admin 进程环境展开，不要求重启 eRPC。
+- `POST /api/targets/{targetId}/rpc-test`：通过运行中的 eRPC 测试网络，可选定向到一个上游，并请求跳过缓存读取；项目启用 Secret 认证时可提交仅用于本次请求的 `projectSecret`。
+
+浏览器不能提交任意目标 URL，也看不到已保存节点的静态认证头。Admin 管理密钥永远不会发送到项目或第三方上游。两条接口都要求有效的管理员登录会话。运行态的指定上游与跳过缓存仍服从项目的 `allowClientDirectives` 设置。响应只返回被测服务的 HTTP 状态、耗时、正文，以及 eRPC 的上游和缓存诊断头；连接错误不会回显包含密钥的 RPC 地址。

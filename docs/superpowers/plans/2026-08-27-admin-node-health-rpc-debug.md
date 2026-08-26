@@ -16,15 +16,16 @@
 - Modify: `Admin/internal/erpc/client.go`
 - Test: `Admin/internal/erpc/client_test.go`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add tests that call the desired `Client.TestRPC` and `TestEndpoint` APIs against
 `httptest.Server`. Assert the exact JSON-RPC envelope, open `networkId` and
 method strings, the `true` skip-cache directive, optional upstream directive,
-admin token header, safe diagnostic headers, raw response body, non-2xx result,
+absence of the Admin token on data-plane requests, safe diagnostic headers,
+raw response body, non-2xx result,
 2 MiB limit, and opaque transport errors.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run:
 
@@ -34,7 +35,7 @@ go test ./internal/erpc -run 'Test.*RPC' -count=1
 
 Expected: compile failure because the probe contracts do not exist.
 
-- [ ] **Step 3: Implement the minimum shared sender**
+- [x] **Step 3: Implement the minimum shared sender**
 
 Add these open-string contracts:
 
@@ -62,7 +63,7 @@ Keep `baseURL` on `Client`, implement `Client.TestRPC`, exported
 2 MiB response limit. Validate only protocol invariants: non-empty project,
 network where required, method, and absolute HTTP(S) endpoint.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the focused test again and require exit 0.
 
@@ -75,13 +76,13 @@ Run the focused test again and require exit 0.
 - Test: `Admin/internal/server/managed_test.go`
 - Modify: `Admin/README.md`
 
-- [ ] **Step 1: Write failing handler tests**
+- [x] **Step 1: Write failing handler tests**
 
 Cover unauthorized calls, exact revision lookup, missing/duplicate
 project/upstream IDs, invalid endpoint schemes, direct success while runtime is
 stopped, target-not-found, runtime pass-through, and safe 502 errors.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 ```powershell
 go test ./internal/server -run 'Test.*RPCTest|Test.*UpstreamTest' -count=1
@@ -89,21 +90,21 @@ go test ./internal/server -run 'Test.*RPCTest|Test.*UpstreamTest' -count=1
 
 Expected: 404 or compile failure because routes/helpers are absent.
 
-- [ ] **Step 3: Implement managed revision lookup**
+- [x] **Step 3: Implement managed revision lookup**
 
 Handle `POST /api/config/upstreams/test` before the generic config fallthrough.
 Decode `erpc.TestRequest` plus `revision`, call `Revisions.Get`, unmarshal only
 the project/upstream fields needed for endpoint lookup, reject ambiguous IDs,
 and call `erpc.TestEndpoint`. Never accept or return the endpoint URL.
 
-- [ ] **Step 4: Implement runtime target routing**
+- [x] **Step 4: Implement runtime target routing**
 
 Add `POST /api/targets/{targetId}/rpc-test` beside taxonomy/project/cordon
 routes. Decode the same request, call `target.Client.TestRPC`, and return the
 result. Transport failures use the existing safe error envelope with a new
 generic Chinese message.
 
-- [ ] **Step 5: Verify GREEN and document the boundary**
+- [x] **Step 5: Verify GREEN and document the boundary**
 
 Run the focused server tests, then update `Admin/README.md` with both routes,
 authentication, no-arbitrary-URL behavior, and restart semantics.
@@ -116,14 +117,14 @@ authentication, no-arbitrary-URL behavior, and restart semantics.
 - Create: `web/src/pages/RpcDebug.tsx`
 - Create: `web/src/pages/RpcDebug.test.ts`
 
-- [ ] **Step 1: Write failing frontend tests**
+- [x] **Step 1: Write failing frontend tests**
 
 Define tests for both mutation paths, encoded target IDs, unknown network and
 method pass-through, the four network presets, params parsing (`[]`, object,
 empty, invalid, scalar), public path generation, PowerShell/curl command
 generation, and JSON/non-JSON result formatting.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 ```powershell
 pnpm exec vitest run src/app/api.test.ts src/pages/RpcDebug.test.ts
@@ -131,13 +132,13 @@ pnpm exec vitest run src/app/api.test.ts src/pages/RpcDebug.test.ts
 
 Expected: missing exports or module failure.
 
-- [ ] **Step 3: Add React Query mutations and pure helpers**
+- [x] **Step 3: Add React Query mutations and pure helpers**
 
 Add `useSavedUpstreamTest` and `useRuntimeRPCTest` to `api.ts`. In
 `RpcDebug.tsx`, export the open preset data and pure parsers/generators before
 building the component. Do not add a method or chain enum.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run the focused Vitest command and require all tests to pass.
 
@@ -150,13 +151,13 @@ Run the focused Vitest command and require all tests to pass.
 - Modify: `web/src/styles.css`
 - Modify: `web/src/config-ui.test.js`
 
-- [ ] **Step 1: Add failing UI contract tests**
+- [x] **Step 1: Add failing UI contract tests**
 
 Assert Chinese `节点健康` and `RPC 调试` navigation, old-route redirects,
 segmented direct/runtime modes, open network and method controls, result
 diagnostics, and the static-upstream test action.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 ```powershell
 pnpm exec vitest run src/config-ui.test.js
@@ -164,7 +165,7 @@ pnpm exec vitest run src/config-ui.test.js
 
 Expected: missing labels/routes/actions.
 
-- [ ] **Step 3: Build the debugger with existing controls**
+- [x] **Step 3: Build the debugger with existing controls**
 
 Use Ant Design `Segmented`, `Select`, `AutoComplete`, `Input`, `Input.TextArea`,
 `Descriptions`, and `Typography`. Derive direct candidates from
@@ -172,18 +173,18 @@ Use Ant Design `Segmented`, `Select`, `AutoComplete`, `Input`, `Input.TextArea`,
 the public base URL from browser hostname plus effective eRPC port while
 keeping it editable. Use existing query data; add no global state or dependency.
 
-- [ ] **Step 4: Add one-click static tests**
+- [x] **Step 4: Add one-click static tests**
 
 Add a test icon to static upstream table rows. Use `eth_chainId` only for
 `evm`, `getHealth` only for `svm`, and direct unknown protocols to the open RPC
 debugger instead of guessing.
 
-- [ ] **Step 5: Wire routes and responsive styles**
+- [x] **Step 5: Wire routes and responsive styles**
 
 Rename `/topology` UI/routes to `/health`, add `/rpc-debug`, preserve redirects,
 and add only the layout/result styles needed at desktop and mobile widths.
 
-- [ ] **Step 6: Verify GREEN**
+- [x] **Step 6: Verify GREEN**
 
 Run the UI contract test, TypeScript check, and the focused RPC tests.
 
@@ -191,9 +192,10 @@ Run the UI contract test, TypeScript check, and the focused RPC tests.
 
 **Files:**
 - Modify: `web/src/App.tsx`
-- Modify: `web/src/topology.test.ts`
+- Create: `web/src/config/health.ts`
+- Create: `web/src/config/health.test.ts`
 
-- [ ] **Step 1: Write failing pure update tests**
+- [x] **Step 1: Write failing pure update tests**
 
 Test reading and changing one selected project's
 `upstreamDefaults.evm.statePollerInterval`,
@@ -201,22 +203,22 @@ Test reading and changing one selected project's
 `scoreMetricsWindowSize`, and `networkDefaults.svm.statePollerDebounce` while
 preserving other projects and unknown fields.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 ```powershell
-pnpm exec vitest run src/topology.test.ts
+pnpm exec vitest run src/config/health.test.ts
 ```
 
 Expected: missing health-setting helpers.
 
-- [ ] **Step 3: Add the project-scoped form**
+- [x] **Step 3: Add the project-scoped form**
 
 Load defaults from `effectivePayload`, save through `extractOverrides`, validate
 before `useSaveConfig`, use the current revision as the conflict base, and
 disable save until the computed sparse document changes. Keep all labels/help
 in Chinese and never describe zero as disabling EVM polling.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
 
 Run topology, document, and configuration UI tests.
 
@@ -226,7 +228,7 @@ Run topology, document, and configuration UI tests.
 - Modify: `specs/admin-web/feature.md`
 - Modify only source/test files required by failures.
 
-- [ ] **Step 1: Run backend verification**
+- [x] **Step 1: Run backend verification**
 
 ```powershell
 go test ./... -count=1
@@ -236,7 +238,7 @@ go build -o admin.exe ./cmd/admin
 
 Expected: all Admin packages pass and build succeeds.
 
-- [ ] **Step 2: Run frontend verification**
+- [x] **Step 2: Run frontend verification**
 
 ```powershell
 pnpm test
@@ -246,13 +248,13 @@ pnpm build
 Expected: Vitest, TypeScript, and Vite production build exit 0. The existing
 bundle-size warning may remain informational.
 
-- [ ] **Step 3: Verify the real UI**
+- [x] **Step 3: Verify the real UI**
 
 With services supplied by the operator, inspect `/health` and `/rpc-debug` at
 desktop and mobile widths. Confirm no overlap, open custom network/method input,
 long response wrapping, direct test before restart, and runtime test diagnostics.
 
-- [ ] **Step 4: Review and commit**
+- [x] **Step 4: Review and commit**
 
 Run `git diff --check`, verify no endpoint credentials appear in the diff,
 request spec and code-quality review, resolve all important findings, then

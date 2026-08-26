@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
-import { DeleteOutlined, EditOutlined, PlusOutlined, SyncOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, ExperimentOutlined, PlusOutlined, SyncOutlined } from "@ant-design/icons";
 import { Alert, AutoComplete, Button, Drawer, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag, Tooltip, message } from "antd";
-import { useCurrentConfig, useSaveConfig, useValidateConfig, type ConfigPayload, type ConfigRevision } from "../app/api";
+import { useNavigate } from "react-router-dom";
+import { useCurrentConfig, useSaveConfig, useSavedUpstreamTest, useValidateConfig, type ConfigPayload, type ConfigRevision } from "../app/api";
 import { configSchema } from "../config/ConfigFields";
 import { extractOverrides, materializeEffectiveConfig, type ConfigSchema } from "../config/document";
+import { rpcResultSucceeded } from "./RpcDebug";
 import {
   addProvider,
   decodeProviderOverrides,
@@ -53,9 +55,11 @@ const accessModeOptions = [
 ];
 
 export function UpstreamsPage() {
+  const navigate = useNavigate();
   const current = useCurrentConfig();
   const save = useSaveConfig();
   const validate = useValidateConfig();
+  const testUpstream = useSavedUpstreamTest();
   const [editing, setEditing] = useState<EditorState>(null);
   const [form] = Form.useForm<ConnectionForm>();
   const [apiMessage, messageContext] = message.useMessage();
@@ -256,6 +260,21 @@ export function UpstreamsPage() {
     }
   }
 
+  async function probe(row: ConnectionRow) {
+    if (row.kind === "provider" || (row.type !== "evm" && row.type !== "svm")) {
+      navigate("/rpc-debug");
+      return;
+    }
+    try {
+      const result = await testUpstream.mutateAsync({ revision: latestConfig?.revision || 0, projectId: row.projectId, upstreamId: row.id, method: row.type === "svm" ? "getHealth" : "eth_chainId", params: [] });
+      const detail = `${result.durationMs} ms`;
+      if (rpcResultSucceeded(result)) apiMessage.success(`RPC 测试通过：${detail}`);
+      else apiMessage.warning(`RPC 返回错误（HTTP ${result.httpStatus}）：${detail}`);
+    } catch (error) {
+      apiMessage.error(error instanceof Error ? error.message : "RPC 测试失败");
+    }
+  }
+
   if (current.isLoading) return <div className="center-state"><Spin size="large" /></div>;
   if (!current.data?.revision) return <Alert type="info" showIcon message="请先在“完整配置”中完成首次配置" />;
   return <section className="page-enter">
@@ -277,7 +296,7 @@ export function UpstreamsPage() {
         { title: "接入方式", key: "mode", width: 170, render: (_, row) => row.kind === "provider" ? <Tag color="cyan">厂商 · {providerDefinition(row.vendor).label}</Tag> : <Tag>自定义 RPC 节点</Tag> },
         { title: "连接与参数", key: "config", ellipsis: true, render: (_, row) => row.kind === "provider" ? <span className="muted">已配置 {Object.keys(record(row.raw.settings)).length} 个厂商参数</span> : <span className="muted">{row.endpoint ? "已配置 RPC 地址" : "未配置"}</span> },
         { title: "网络范围", key: "networks", width: 180, render: (_, row) => row.kind === "provider" ? networkSummary(row) : <span className="muted">由节点配置决定</span> },
-        { title: "操作", key: "action", width: 120, fixed: "right", render: (_, row) => <Space><Tooltip title="编辑"><Button size="small" icon={<EditOutlined />} onClick={() => openEditor(row)} /></Tooltip><Popconfirm title={`删除 ${row.id || "该接入项"}？`} description="保存后会生成一个新的配置版本。" okText="删除" cancelText="取消" onConfirm={() => void remove(row)}><Tooltip title="删除"><Button size="small" danger icon={<DeleteOutlined />} /></Tooltip></Popconfirm></Space> },
+        { title: "操作", key: "action", width: 160, fixed: "right", render: (_, row) => <Space><Tooltip title={row.kind === "provider" ? "通过运行中的 eRPC 测试厂商节点" : "测试当前配置版本中的 RPC 地址"}><Button size="small" aria-label="测试 RPC" icon={<ExperimentOutlined />} loading={testUpstream.isPending && row.kind === "upstream"} onClick={() => void probe(row)} /></Tooltip><Tooltip title="编辑"><Button size="small" icon={<EditOutlined />} onClick={() => openEditor(row)} /></Tooltip><Popconfirm title={`删除 ${row.id || "该接入项"}？`} description="保存后会生成一个新的配置版本。" okText="删除" cancelText="取消" onConfirm={() => void remove(row)}><Tooltip title="删除"><Button size="small" danger icon={<DeleteOutlined />} /></Tooltip></Popconfirm></Space> },
       ]}
     />
     <Drawer

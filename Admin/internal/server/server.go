@@ -53,7 +53,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if s.managed != nil && s.handleManaged(w, r) {
 		return
 	}
-	parts := splitPath(r.URL.Path)
+	parts := splitPath(r.URL.EscapedPath())
 	if len(parts) == 2 && parts[0] == "api" && parts[1] == "targets" {
 		if r.Method != http.MethodGet {
 			s.writeError(w, http.StatusMethodNotAllowed, "method not allowed")
@@ -77,6 +77,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch {
+	case len(parts) == 4 && parts[3] == "rpc-test" && r.Method == http.MethodPost:
+		var request erpc.TestRequest
+		if err := s.decodeBody(r, &request); err != nil {
+			s.writeError(w, http.StatusBadRequest, "RPC 测试请求无效")
+			return
+		}
+		result, err := target.Client.TestRPC(r.Context(), request)
+		s.respondRPCTest(w, result, err)
 	case len(parts) == 4 && parts[3] == "taxonomy" && r.Method == http.MethodGet:
 		result, err := target.Client.Taxonomy(r.Context())
 		s.respondRPC(w, result, err)
@@ -252,6 +260,18 @@ func (s *Server) respondRPC(w http.ResponseWriter, value any, err error) {
 		return
 	}
 	s.writeJSON(w, http.StatusOK, value)
+}
+
+func (s *Server) respondRPCTest(w http.ResponseWriter, value erpc.TestResult, err error) {
+	if err == nil {
+		s.writeJSON(w, http.StatusOK, value)
+		return
+	}
+	if errors.Is(err, erpc.ErrInvalidTestRequest) {
+		s.writeError(w, http.StatusBadRequest, "RPC 测试参数无效")
+		return
+	}
+	s.writeError(w, http.StatusBadGateway, "无法连接被测 RPC 服务")
 }
 
 func publicError(err error) string {

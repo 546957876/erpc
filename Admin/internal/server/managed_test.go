@@ -5,7 +5,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -215,6 +217,93 @@ func TestManagedCurrentConfigHidesDumpFailures(t *testing.T) {
 	if strings.Contains(body, "plain") || strings.Contains(body, "private dump failure") {
 		t.Fatalf("response leaked configuration or dump error: %s", body)
 	}
+}
+
+func TestManagedSavedUpstreamTestUsesExactRevision(t *testing.T) {
+	rpcServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-ERPC-Skip-Cache-Read") != "" || r.Header.Get("X-ERPC-Use-Upstream") != "" {
+			t.Fatalf("saved endpoint received eRPC directives: %#v", r.Header)
+		}
+		if r.Header.Get("Authorization") != "Bearer saved-secret" {
+			t.Fatalf("saved endpoint did not receive configured headers: %#v", r.Header)
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body["method"] != "future_method" {
+			t.Fatalf("body = %#v", body)
+		}
+		_, _ = io.WriteString(w, `{"jsonrpc":"2.0","id":1,"result":"saved-ok"}`)
+	}))
+	defer rpcServer.Close()
+
+	t.Setenv("ERPC_ADMIN_TEST_ENDPOINT", rpcServer.URL)
+	t.Setenv("ERPC_ADMIN_TEST_TOKEN", "saved-secret")
+	revisionOne := mustDocument(t, `{"projects":[{"id":"main","upstreamDefaults":{"endpoint":"${ERPC_ADMIN_TEST_ENDPOINT}","jsonRpc":{"headers":{"Authorization":"Bearer ${ERPC_ADMIN_TEST_TOKEN}"}}},"upstreams":[{"id":"node-a"}]}]}`)
+	latest := mustDocument(t, `{"projects":[{"id":"main","upstreams":[{"id":"node-a","endpoint":"https://latest.invalid"}]}]}`)
+	store := &fakeRevisionStore{items: []revisions.Revision{{Revision: 1, Payload: revisionOne.Payload}, {Revision: 2, Payload: latest.Payload}}}
+	handler, cookie := newManagedTestHandler(t, store)
+	unauthorized := request(t, handler, http.MethodPost, "/api/config/upstreams/test", map[string]any{"revision": 1, "projectId": "main", "upstreamId": "node-a", "method": "future_method"}, nil)
+	assertStatus(t, unauthorized, http.StatusUnauthorized)
+
+	response := request(t, handler, http.MethodPost, "/api/config/upstreams/test", map[string]any{"revision": 1, "projectId": "main", "upstreamId": "node-a", "method": "future_method", "params": []any{}}, cookie)
+	assertStatus(t, response, http.StatusOK)
+	if !strings.Contains(response.Body.String(), "saved-ok") {
+		t.Fatalf("response = %s", response.Body.String())
+	}
+}
+
+func TestManagedSavedUpstreamTestRejectsMissingAmbiguousAndInvalidTargets(t *testing.T) {
+	tests := []struct {
+		name    string
+		payload string
+		body    map[string]any
+		status  int
+	}{
+		{name: "revision", payload: `{"projects":[]}`, body: map[string]any{"revision": 2, "projectId": "main", "upstreamId": "node-a", "method": "eth_chainId"}, status: http.StatusNotFound},
+		{name: "project", payload: `{"projects":[]}`, body: map[string]any{"revision": 1, "projectId": "main", "upstreamId": "node-a", "method": "eth_chainId"}, status: http.StatusNotFound},
+		{name: "upstream", payload: `{"projects":[{"id":"main","upstreams":[]}]}`, body: map[string]any{"revision": 1, "projectId": "main", "upstreamId": "node-a", "method": "eth_chainId"}, status: http.StatusNotFound},
+		{name: "ambiguous project", payload: `{"projects":[{"id":"main","upstreams":[]},{"id":"main","upstreams":[]}]}`, body: map[string]any{"revision": 1, "projectId": "main", "upstreamId": "node-a", "method": "eth_chainId"}, status: http.StatusConflict},
+		{name: "ambiguous upstream", payload: `{"projects":[{"id":"main","upstreams":[{"id":"node-a","endpoint":"https://one.example"},{"id":"node-a","endpoint":"https://two.example"}]}]}`, body: map[string]any{"revision": 1, "projectId": "main", "upstreamId": "node-a", "method": "eth_chainId"}, status: http.StatusConflict},
+		{name: "invalid endpoint", payload: `{"projects":[{"id":"main","upstreams":[{"id":"node-a","endpoint":"file:///secret"}]}]}`, body: map[string]any{"revision": 1, "projectId": "main", "upstreamId": "node-a", "method": "eth_chainId"}, status: http.StatusUnprocessableEntity},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			document := mustDocument(t, test.payload)
+			store := &fakeRevisionStore{items: []revisions.Revision{{Revision: 1, Payload: document.Payload}}}
+			handler, cookie := newManagedTestHandler(t, store)
+			response := request(t, handler, http.MethodPost, "/api/config/upstreams/test", test.body, cookie)
+			assertStatus(t, response, test.status)
+		})
+	}
+}
+
+func TestManagedSavedUpstreamTestHidesTransportDetails(t *testing.T) {
+	document := mustDocument(t, `{"projects":[{"id":"main","upstreams":[{"id":"node-a","endpoint":"http://127.0.0.1:1/private-key"}]}]}`)
+	store := &fakeRevisionStore{items: []revisions.Revision{{Revision: 1, Payload: document.Payload}}}
+	handler, cookie := newManagedTestHandler(t, store)
+	response := request(t, handler, http.MethodPost, "/api/config/upstreams/test", map[string]any{"revision": 1, "projectId": "main", "upstreamId": "node-a", "method": "eth_chainId"}, cookie)
+	assertStatus(t, response, http.StatusBadGateway)
+	if strings.Contains(response.Body.String(), "private-key") || strings.Contains(response.Body.String(), "127.0.0.1") {
+		t.Fatalf("transport response leaked endpoint: %s", response.Body.String())
+	}
+}
+
+func newManagedTestHandler(t *testing.T, store *fakeRevisionStore) (http.Handler, *http.Cookie) {
+	t.Helper()
+	reg, err := registry.New(config.RuntimeConfig{PollInterval: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts, err := adminauth.NewStore(filepath.Join(t.TempDir(), "administrator.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewManaged(reg, accounts, adminauth.NewSessions(time.Hour), ManagedDependencies{Revisions: store, Validator: fakeValidator{valid: true}, Runtime: fakeRuntime{}})
+	setup := request(t, handler, http.MethodPost, "/api/auth/setup", map[string]string{"username": "admin", "password": "correct-horse"}, nil)
+	assertStatus(t, setup, http.StatusCreated)
+	return handler, setup.Result().Cookies()[0]
 }
 
 func mustDocument(t *testing.T, payload string) configdoc.Document {

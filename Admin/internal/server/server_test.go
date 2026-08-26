@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -65,6 +66,62 @@ func TestServerAccountSetupLoginAndProtection(t *testing.T) {
 	if signedIn["setupRequired"] || !signedIn["authenticated"] {
 		t.Fatalf("unexpected signed-in status: %#v", signedIn)
 	}
+}
+
+func TestRuntimeRPCTestRoute(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/main" {
+			t.Fatalf("path = %q, want /main", r.URL.Path)
+		}
+		if r.Header.Get("X-ERPC-Skip-Cache-Read") != "true" || r.Header.Get("X-ERPC-Use-Upstream") != "node-a" {
+			t.Fatalf("directives = %#v", r.Header)
+		}
+		if r.Header.Get("X-ERPC-Secret-Token") != "project-secret" {
+			t.Fatalf("project secret = %q", r.Header.Get("X-ERPC-Secret-Token"))
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body["networkId"] != "future:network" || body["method"] != "future_method" {
+			t.Fatalf("body = %#v", body)
+		}
+		w.Header().Set("X-ERPC-Upstream", "node-a")
+		w.Header().Set("X-ERPC-Cache", "MISS")
+		_, _ = io.WriteString(w, `{"jsonrpc":"2.0","id":1,"result":"ok"}`)
+	}))
+	defer upstream.Close()
+
+	reg, err := registry.New(config.RuntimeConfig{PollInterval: time.Second, Targets: []config.ResolvedTarget{{ID: "target/one", BaseURL: upstream.URL, Token: "secret"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts, err := adminauth.NewStore(filepath.Join(t.TempDir(), "administrator.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := New(reg, accounts, adminauth.NewSessions(time.Hour))
+	unauthorized := request(t, handler, http.MethodPost, "/api/targets/target%2Fone/rpc-test", map[string]any{"projectId": "main", "networkId": "future:network", "method": "future_method", "params": []any{}}, nil)
+	assertStatus(t, unauthorized, http.StatusUnauthorized)
+	setup := request(t, handler, http.MethodPost, "/api/auth/setup", map[string]string{"username": "admin", "password": "correct-horse"}, nil)
+	cookie := setup.Result().Cookies()[0]
+
+	response := request(t, handler, http.MethodPost, "/api/targets/target%2Fone/rpc-test", map[string]any{"projectId": "main", "networkId": "future:network", "upstreamId": "node-a", "projectSecret": "project-secret", "method": "future_method", "params": map[string]any{"open": true}}, cookie)
+	assertStatus(t, response, http.StatusOK)
+	var result struct {
+		HTTPStatus int    `json:"httpStatus"`
+		Upstream   string `json:"upstream"`
+		Cache      string `json:"cache"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+		t.Fatal(err)
+	}
+	if result.HTTPStatus != http.StatusOK || result.Upstream != "node-a" || result.Cache != "MISS" {
+		t.Fatalf("result = %#v", result)
+	}
+
+	missing := request(t, handler, http.MethodPost, "/api/targets/missing/rpc-test", map[string]any{"projectId": "main", "networkId": "evm:1", "method": "eth_chainId"}, cookie)
+	assertStatus(t, missing, http.StatusNotFound)
 }
 
 func newTestServer(t *testing.T) http.Handler {
