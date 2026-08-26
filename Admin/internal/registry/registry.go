@@ -46,11 +46,18 @@ type Target struct {
 type Registry struct {
 	mu       sync.RWMutex
 	targets  map[string]*Target
+	polling  map[string]pollingHandle
 	interval time.Duration
+	ctx      context.Context
+}
+
+type pollingHandle struct {
+	cancel context.CancelFunc
+	token  chan struct{}
 }
 
 func New(cfg config.RuntimeConfig) (*Registry, error) {
-	r := &Registry{targets: make(map[string]*Target), interval: cfg.PollInterval}
+	r := &Registry{targets: make(map[string]*Target), polling: make(map[string]pollingHandle), interval: cfg.PollInterval}
 	if r.interval <= 0 {
 		r.interval = 10 * time.Second
 	}
@@ -65,22 +72,80 @@ func New(cfg config.RuntimeConfig) (*Registry, error) {
 }
 
 func (r *Registry) Start(ctx context.Context) {
-	for _, target := range r.targetsCopy() {
-		target := target
-		go func() {
-			_ = r.PollOnce(ctx, target.ID)
-			ticker := time.NewTicker(r.interval)
-			defer ticker.Stop()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-					_ = r.PollOnce(ctx, target.ID)
-				}
-			}
-		}()
+	r.mu.Lock()
+	r.ctx = ctx
+	ids := make([]string, 0, len(r.targets))
+	for id := range r.targets {
+		ids = append(ids, id)
 	}
+	r.mu.Unlock()
+	for _, id := range ids {
+		r.startPolling(id)
+	}
+}
+
+func (r *Registry) SetTarget(id, baseURL, token string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return fmt.Errorf("target id is required")
+	}
+	client, err := erpc.NewClient(baseURL, token)
+	if err != nil {
+		return fmt.Errorf("target %q: %w", id, err)
+	}
+	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	r.mu.Lock()
+	r.targets[id] = &Target{ID: id, BaseURL: baseURL, Client: client, snap: Snapshot{ID: id, BaseURL: baseURL, Status: Offline, Taxonomy: erpc.Taxonomy{Projects: []erpc.Project{}}}}
+	r.mu.Unlock()
+	r.startPolling(id)
+	return nil
+}
+
+func (r *Registry) ClearTarget(id string) {
+	r.mu.Lock()
+	if handle, ok := r.polling[id]; ok {
+		handle.cancel()
+		delete(r.polling, id)
+	}
+	delete(r.targets, id)
+	r.mu.Unlock()
+}
+
+func (r *Registry) startPolling(id string) {
+	r.mu.Lock()
+	parent := r.ctx
+	if parent == nil {
+		r.mu.Unlock()
+		return
+	}
+	if _, exists := r.polling[id]; exists {
+		r.mu.Unlock()
+		return
+	}
+	ctx, cancel := context.WithCancel(parent)
+	token := make(chan struct{})
+	r.polling[id] = pollingHandle{cancel: cancel, token: token}
+	r.mu.Unlock()
+	go func() {
+		defer func() {
+			r.mu.Lock()
+			if current, ok := r.polling[id]; ok && current.token == token {
+				delete(r.polling, id)
+			}
+			r.mu.Unlock()
+		}()
+		_ = r.PollOnce(ctx, id)
+		ticker := time.NewTicker(r.interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				_ = r.PollOnce(ctx, id)
+			}
+		}
+	}()
 }
 
 func (r *Registry) targetsCopy() []*Target {

@@ -1,7 +1,9 @@
 listen: 127.0.0.1:8090
 pollInterval: 10s
-webTokenEnv: ADMIN_WEB_TOKEN
-targets:
-  - id: local-erpc
-    baseUrl: http://127.0.0.1:4000
-    adminTokenEnv: ERPC_LOCAL_ADMIN_TOKEN
+databaseUrl: postgres://<user>:<password>@127.0.0.1:5432/erpc_admin?sslmode=disable
+# Optional: when set, this environment variable overrides databaseUrl.
+databaseUrlEnv: ERPC_ADMIN_DATABASE_URL
+erpcBinary: E:/go/goProject/eRPC/bin/erpc.exe
+runtimeDir: data/runtime
+shutdownTimeout: 15s
+authFile: data/admin-auth.json

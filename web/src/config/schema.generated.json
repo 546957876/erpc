@@ -1,0 +1,5904 @@
+{
+  "root": {
+    "kind": "object",
+    "ref": "Config"
+  },
+  "definitions": {
+    "AdminConfig": {
+      "fields": [
+        {
+          "key": "auth",
+          "node": {
+            "kind": "object",
+            "ref": "AuthConfig"
+          },
+          "owner": "AdminConfig",
+          "goName": "Auth",
+          "goType": "*common.AuthConfig"
+        },
+        {
+          "key": "cors",
+          "node": {
+            "kind": "object",
+            "ref": "CORSConfig"
+          },
+          "owner": "AdminConfig",
+          "goName": "CORS",
+          "goType": "*common.CORSConfig"
+        },
+        {
+          "key": "allowMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "AdminConfig",
+          "goName": "AllowMethods",
+          "goType": "[]string"
+        },
+        {
+          "key": "denyMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "AdminConfig",
+          "goName": "DenyMethods",
+          "goType": "[]string"
+        }
+      ]
+    },
+    "AliasingConfig": {
+      "fields": [
+        {
+          "key": "rules",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "AliasingRuleConfig"
+            }
+          },
+          "owner": "AliasingConfig",
+          "goName": "Rules",
+          "goType": "[]*common.AliasingRuleConfig"
+        }
+      ]
+    },
+    "AliasingRuleConfig": {
+      "fields": [
+        {
+          "key": "matchDomain",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AliasingRuleConfig",
+          "goName": "MatchDomain",
+          "goType": "string"
+        },
+        {
+          "key": "serveProject",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AliasingRuleConfig",
+          "goName": "ServeProject",
+          "goType": "string"
+        },
+        {
+          "key": "serveArchitecture",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AliasingRuleConfig",
+          "goName": "ServeArchitecture",
+          "goType": "string"
+        },
+        {
+          "key": "serveChain",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AliasingRuleConfig",
+          "goName": "ServeChain",
+          "goType": "string"
+        }
+      ]
+    },
+    "AuthConfig": {
+      "fields": [
+        {
+          "key": "strategies",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "AuthStrategyConfig"
+            }
+          },
+          "owner": "AuthConfig",
+          "goName": "Strategies",
+          "goType": "[]*common.AuthStrategyConfig"
+        }
+      ]
+    },
+    "AuthStrategyConfig": {
+      "fields": [
+        {
+          "key": "ignoreMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "IgnoreMethods",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "AllowMethods",
+          "goType": "[]string"
+        },
+        {
+          "key": "rateLimitBudget",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "RateLimitBudget",
+          "goType": "string"
+        },
+        {
+          "key": "allowClientDirectives",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "AllowClientDirectives",
+          "goType": "*string",
+          "comment": "AllowClientDirectives, if set, overrides the project-level\n`allowClientDirectives` pattern for users authenticated by THIS strategy.\nSame wildcard syntax as the project-level field (\"*\" = all, \"\" = none).\n\nClient directives (`X-ERPC-*` headers) are powerful per-request overrides —\ne.g. pinning an upstream bypasses the selection policy, and skipping the\ncache multiplies upstream load — so operators exposing erpc directly to\nuntrusted callers typically deny them project-wide and re-enable them only\nfor trusted strategies:\n\n\tallowClientDirectives: \"\"      # project default: nobody\n\tauth.strategies[0].allowClientDirectives: \"*\"   # this strategy: everything\n\nLeft unset the caller inherits the project-level pattern, so existing\nconfigs are unaffected. The capability is attached to the user by the\nstrategy that authenticated them, which means it can never be granted by\n`trustUserIdHeader` (that path sets only Id — see\nNormalizedRequest.SetUserFromTrustedHeader)."
+        },
+        {
+          "key": "type",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "Type",
+          "goType": "common.AuthType"
+        },
+        {
+          "key": "network",
+          "node": {
+            "kind": "object",
+            "ref": "NetworkStrategyConfig"
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "Network",
+          "goType": "*common.NetworkStrategyConfig"
+        },
+        {
+          "key": "secret",
+          "node": {
+            "kind": "object",
+            "ref": "SecretStrategyConfig"
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "Secret",
+          "goType": "*common.SecretStrategyConfig"
+        },
+        {
+          "key": "database",
+          "node": {
+            "kind": "object",
+            "ref": "DatabaseStrategyConfig"
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "Database",
+          "goType": "*common.DatabaseStrategyConfig"
+        },
+        {
+          "key": "jwt",
+          "node": {
+            "kind": "object",
+            "ref": "JwtStrategyConfig"
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "Jwt",
+          "goType": "*common.JwtStrategyConfig"
+        },
+        {
+          "key": "siwe",
+          "node": {
+            "kind": "object",
+            "ref": "SiweStrategyConfig"
+          },
+          "owner": "AuthStrategyConfig",
+          "goName": "Siwe",
+          "goType": "*common.SiweStrategyConfig"
+        }
+      ]
+    },
+    "AwsAuthConfig": {
+      "fields": [
+        {
+          "key": "mode",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AwsAuthConfig",
+          "goName": "Mode",
+          "goType": "string",
+          "comment": "\"file\", \"env\", \"secret\""
+        },
+        {
+          "key": "credentialsFile",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AwsAuthConfig",
+          "goName": "CredentialsFile",
+          "goType": "string"
+        },
+        {
+          "key": "profile",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AwsAuthConfig",
+          "goName": "Profile",
+          "goType": "string"
+        },
+        {
+          "key": "accessKeyID",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AwsAuthConfig",
+          "goName": "AccessKeyID",
+          "goType": "string"
+        },
+        {
+          "key": "secretAccessKey",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "AwsAuthConfig",
+          "goName": "SecretAccessKey",
+          "goType": "string"
+        }
+      ]
+    },
+    "CORSConfig": {
+      "fields": [
+        {
+          "key": "allowedOrigins",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "CORSConfig",
+          "goName": "AllowedOrigins",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowedMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "CORSConfig",
+          "goName": "AllowedMethods",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowedHeaders",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "CORSConfig",
+          "goName": "AllowedHeaders",
+          "goType": "[]string"
+        },
+        {
+          "key": "exposedHeaders",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "CORSConfig",
+          "goName": "ExposedHeaders",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowCredentials",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "CORSConfig",
+          "goName": "AllowCredentials",
+          "goType": "*bool"
+        },
+        {
+          "key": "maxAge",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "CORSConfig",
+          "goName": "MaxAge",
+          "goType": "int"
+        }
+      ]
+    },
+    "CacheConfig": {
+      "fields": [
+        {
+          "key": "connectors",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "ConnectorConfig"
+            }
+          },
+          "owner": "CacheConfig",
+          "goName": "Connectors",
+          "goType": "[]*common.ConnectorConfig"
+        },
+        {
+          "key": "policies",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "CachePolicyConfig"
+            }
+          },
+          "owner": "CacheConfig",
+          "goName": "Policies",
+          "goType": "[]*common.CachePolicyConfig"
+        },
+        {
+          "key": "compression",
+          "node": {
+            "kind": "object",
+            "ref": "CompressionConfig"
+          },
+          "owner": "CacheConfig",
+          "goName": "Compression",
+          "goType": "*common.CompressionConfig"
+        }
+      ]
+    },
+    "CacheMethodConfig": {
+      "fields": [
+        {
+          "key": "reqRefs",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "array",
+              "item": {
+                "kind": "any"
+              }
+            }
+          },
+          "owner": "CacheMethodConfig",
+          "goName": "ReqRefs",
+          "goType": "[][]interface {}"
+        },
+        {
+          "key": "respRefs",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "array",
+              "item": {
+                "kind": "any"
+              }
+            }
+          },
+          "owner": "CacheMethodConfig",
+          "goName": "RespRefs",
+          "goType": "[][]interface {}"
+        },
+        {
+          "key": "finalized",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "CacheMethodConfig",
+          "goName": "Finalized",
+          "goType": "bool"
+        },
+        {
+          "key": "realtime",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "CacheMethodConfig",
+          "goName": "Realtime",
+          "goType": "bool"
+        },
+        {
+          "key": "stateful",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "CacheMethodConfig",
+          "goName": "Stateful",
+          "goType": "bool"
+        },
+        {
+          "key": "translateLatestTag",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "CacheMethodConfig",
+          "goName": "TranslateLatestTag",
+          "goType": "*bool",
+          "comment": "TranslateLatestTag controls whether the method-level tag translation should convert \"latest\" to a concrete hex block number.\nWhen nil or true, translation is enabled by default."
+        },
+        {
+          "key": "translateFinalizedTag",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "CacheMethodConfig",
+          "goName": "TranslateFinalizedTag",
+          "goType": "*bool",
+          "comment": "TranslateFinalizedTag controls whether the method-level tag translation should convert \"finalized\" to a concrete hex block number.\nWhen nil or true, translation is enabled by default."
+        },
+        {
+          "key": "enforceBlockAvailability",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "CacheMethodConfig",
+          "goName": "EnforceBlockAvailability",
+          "goType": "*bool",
+          "comment": "EnforceBlockAvailability controls whether per-upstream block availability bounds (upper/lower)\nare enforced for this method at the network level. When nil or true, enforcement is enabled."
+        }
+      ]
+    },
+    "CachePolicyConfig": {
+      "fields": [
+        {
+          "key": "connector",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "Connector",
+          "goType": "string"
+        },
+        {
+          "key": "network",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "Network",
+          "goType": "string"
+        },
+        {
+          "key": "method",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "Method",
+          "goType": "string"
+        },
+        {
+          "key": "params",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "any"
+            }
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "Params",
+          "goType": "[]interface {}"
+        },
+        {
+          "key": "finality",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "Finality",
+          "goType": "common.DataFinalityState"
+        },
+        {
+          "key": "empty",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "Empty",
+          "goType": "common.CacheEmptyBehavior"
+        },
+        {
+          "key": "appliesTo",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "AppliesTo",
+          "goType": "common.CachePolicyAppliesTo"
+        },
+        {
+          "key": "minItemSize",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "MinItemSize",
+          "goType": "*string"
+        },
+        {
+          "key": "maxItemSize",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "MaxItemSize",
+          "goType": "*string"
+        },
+        {
+          "key": "ttl",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CachePolicyConfig",
+          "goName": "TTL",
+          "goType": "*common.BlockTimeAdaptiveDuration",
+          "comment": "TTL is either a fixed duration (\"2s\") or, in object form, derived from the\nnetwork's estimated block time ({ blockTimeMultiplier: 1, fallback: 2s }).\nFor realtime finality the resolved value is the age limit; the fixed/\nfallback component is also used as the cache storage expiry. See\nBlockTimeAdaptiveDuration."
+        }
+      ]
+    },
+    "CircuitBreakerPolicyConfig": {
+      "fields": [
+        {
+          "key": "failureThresholdCount",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "CircuitBreakerPolicyConfig",
+          "goName": "FailureThresholdCount",
+          "goType": "uint"
+        },
+        {
+          "key": "failureThresholdCapacity",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "CircuitBreakerPolicyConfig",
+          "goName": "FailureThresholdCapacity",
+          "goType": "uint"
+        },
+        {
+          "key": "halfOpenAfter",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CircuitBreakerPolicyConfig",
+          "goName": "HalfOpenAfter",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "successThresholdCount",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "CircuitBreakerPolicyConfig",
+          "goName": "SuccessThresholdCount",
+          "goType": "uint"
+        },
+        {
+          "key": "successThresholdCapacity",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "CircuitBreakerPolicyConfig",
+          "goName": "SuccessThresholdCapacity",
+          "goType": "uint"
+        }
+      ]
+    },
+    "CompressionConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "CompressionConfig",
+          "goName": "Enabled",
+          "goType": "*bool"
+        },
+        {
+          "key": "algorithm",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CompressionConfig",
+          "goName": "Algorithm",
+          "goType": "string",
+          "comment": "\"zstd\" for now, can be extended"
+        },
+        {
+          "key": "zstdLevel",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "CompressionConfig",
+          "goName": "ZstdLevel",
+          "goType": "string",
+          "comment": "\"fastest\", \"default\", \"better\", \"best\""
+        },
+        {
+          "key": "threshold",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "CompressionConfig",
+          "goName": "Threshold",
+          "goType": "int",
+          "comment": "Minimum size in bytes to compress"
+        }
+      ]
+    },
+    "Config": {
+      "fields": [
+        {
+          "key": "logLevel",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "Config",
+          "goName": "LogLevel",
+          "goType": "string"
+        },
+        {
+          "key": "clusterKey",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "Config",
+          "goName": "ClusterKey",
+          "goType": "string"
+        },
+        {
+          "key": "server",
+          "node": {
+            "kind": "object",
+            "ref": "ServerConfig"
+          },
+          "owner": "Config",
+          "goName": "Server",
+          "goType": "*common.ServerConfig"
+        },
+        {
+          "key": "healthCheck",
+          "node": {
+            "kind": "object",
+            "ref": "HealthCheckConfig"
+          },
+          "owner": "Config",
+          "goName": "HealthCheck",
+          "goType": "*common.HealthCheckConfig"
+        },
+        {
+          "key": "admin",
+          "node": {
+            "kind": "object",
+            "ref": "AdminConfig"
+          },
+          "owner": "Config",
+          "goName": "Admin",
+          "goType": "*common.AdminConfig"
+        },
+        {
+          "key": "database",
+          "node": {
+            "kind": "object",
+            "ref": "DatabaseConfig"
+          },
+          "owner": "Config",
+          "goName": "Database",
+          "goType": "*common.DatabaseConfig"
+        },
+        {
+          "key": "projects",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "ProjectConfig"
+            }
+          },
+          "owner": "Config",
+          "goName": "Projects",
+          "goType": "[]*common.ProjectConfig"
+        },
+        {
+          "key": "rateLimiters",
+          "node": {
+            "kind": "object",
+            "ref": "RateLimiterConfig"
+          },
+          "owner": "Config",
+          "goName": "RateLimiters",
+          "goType": "*common.RateLimiterConfig"
+        },
+        {
+          "key": "metrics",
+          "node": {
+            "kind": "object",
+            "ref": "MetricsConfig"
+          },
+          "owner": "Config",
+          "goName": "Metrics",
+          "goType": "*common.MetricsConfig"
+        },
+        {
+          "key": "proxyPools",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "ProxyPoolConfig"
+            }
+          },
+          "owner": "Config",
+          "goName": "ProxyPools",
+          "goType": "[]*common.ProxyPoolConfig"
+        },
+        {
+          "key": "tracing",
+          "node": {
+            "kind": "object",
+            "ref": "TracingConfig"
+          },
+          "owner": "Config",
+          "goName": "Tracing",
+          "goType": "*common.TracingConfig"
+        }
+      ]
+    },
+    "ConnectorConfig": {
+      "fields": [
+        {
+          "key": "id",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ConnectorConfig",
+          "goName": "Id",
+          "goType": "string"
+        },
+        {
+          "key": "driver",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ConnectorConfig",
+          "goName": "Driver",
+          "goType": "common.ConnectorDriverType"
+        },
+        {
+          "key": "tags",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "ConnectorConfig",
+          "goName": "Tags",
+          "goType": "[]string",
+          "comment": "Tags label the data source a connector caches, so the `use-upstream`\ndirective can gate which connector is read/written — e.g. a connector\nfed by a system-transaction node tagged `systx` is only used when the\nrequest's selector admits it. Same glob/`!negation` grammar as upstream\ntags. Untagged connectors are always eligible (a use-upstream pin meant\nfor upstreams must not disable a normal cache)."
+        },
+        {
+          "key": "memory",
+          "node": {
+            "kind": "object",
+            "ref": "MemoryConnectorConfig"
+          },
+          "owner": "ConnectorConfig",
+          "goName": "Memory",
+          "goType": "*common.MemoryConnectorConfig"
+        },
+        {
+          "key": "redis",
+          "node": {
+            "kind": "object",
+            "ref": "RedisConnectorConfig"
+          },
+          "owner": "ConnectorConfig",
+          "goName": "Redis",
+          "goType": "*common.RedisConnectorConfig"
+        },
+        {
+          "key": "dynamodb",
+          "node": {
+            "kind": "object",
+            "ref": "DynamoDBConnectorConfig"
+          },
+          "owner": "ConnectorConfig",
+          "goName": "DynamoDB",
+          "goType": "*common.DynamoDBConnectorConfig"
+        },
+        {
+          "key": "postgresql",
+          "node": {
+            "kind": "object",
+            "ref": "PostgreSQLConnectorConfig"
+          },
+          "owner": "ConnectorConfig",
+          "goName": "PostgreSQL",
+          "goType": "*common.PostgreSQLConnectorConfig"
+        },
+        {
+          "key": "grpc",
+          "node": {
+            "kind": "object",
+            "ref": "GrpcConnectorConfig"
+          },
+          "owner": "ConnectorConfig",
+          "goName": "Grpc",
+          "goType": "*common.GrpcConnectorConfig"
+        },
+        {
+          "key": "failsafeForGets",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "FailsafeConfig"
+            }
+          },
+          "owner": "ConnectorConfig",
+          "goName": "FailsafeForGets",
+          "goType": "[]*common.FailsafeConfig"
+        },
+        {
+          "key": "failsafeForSets",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "FailsafeConfig"
+            }
+          },
+          "owner": "ConnectorConfig",
+          "goName": "FailsafeForSets",
+          "goType": "[]*common.FailsafeConfig"
+        }
+      ]
+    },
+    "ConsensusPolicyConfig": {
+      "fields": [
+        {
+          "key": "maxParticipants",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "MaxParticipants",
+          "goType": "int"
+        },
+        {
+          "key": "agreementThreshold",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "AgreementThreshold",
+          "goType": "int"
+        },
+        {
+          "key": "disputeBehavior",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "DisputeBehavior",
+          "goType": "common.ConsensusDisputeBehavior"
+        },
+        {
+          "key": "lowParticipantsBehavior",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "LowParticipantsBehavior",
+          "goType": "common.ConsensusLowParticipantsBehavior"
+        },
+        {
+          "key": "punishMisbehavior",
+          "node": {
+            "kind": "object",
+            "ref": "PunishMisbehaviorConfig"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "PunishMisbehavior",
+          "goType": "*common.PunishMisbehaviorConfig"
+        },
+        {
+          "key": "disputeLogLevel",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "DisputeLogLevel",
+          "goType": "string",
+          "comment": "\"trace\", \"debug\", \"info\", \"warn\", \"error\""
+        },
+        {
+          "key": "ignoreFields",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "array",
+              "item": {
+                "kind": "string"
+              }
+            }
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "IgnoreFields",
+          "goType": "map[string][]string"
+        },
+        {
+          "key": "preferNonEmpty",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "PreferNonEmpty",
+          "goType": "*bool"
+        },
+        {
+          "key": "preferLargerResponses",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "PreferLargerResponses",
+          "goType": "*bool"
+        },
+        {
+          "key": "misbehaviorsDestination",
+          "node": {
+            "kind": "object",
+            "ref": "MisbehaviorsDestinationConfig"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "MisbehaviorsDestination",
+          "goType": "*common.MisbehaviorsDestinationConfig"
+        },
+        {
+          "key": "preferHighestValueFor",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "array",
+              "item": {
+                "kind": "string"
+              }
+            }
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "PreferHighestValueFor",
+          "goType": "map[string][]string",
+          "comment": "PreferHighestValueFor specifies methods that should use highest-value comparison\ninstead of hash-based consensus. Map key is method name, value is array of field paths.\nField paths: \"result\" for direct result value (e.g., eth_getTransactionCount returns hex),\nor field name for nested result objects (e.g., \"nonce\" for result.nonce).\nWhen multiple fields are specified, they act as tie-breakers in order."
+        },
+        {
+          "key": "fireAndForget",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "FireAndForget",
+          "goType": "bool",
+          "comment": "FireAndForget when true, allows consensus to return a response to the client immediately\nupon short-circuit, but does NOT cancel in-flight requests to other upstreams.\nThis is useful for write operations like eth_sendRawTransaction where you want to\nbroadcast the transaction to as many nodes as possible while still returning quickly.\nDefault is false (normal behavior - cancel remaining requests on short-circuit)."
+        },
+        {
+          "key": "maxWaitOnResult",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "MaxWaitOnResult",
+          "goType": "*common.AdaptiveDuration",
+          "comment": "MaxWaitOnResult caps how long consensus waits for additional participants\nAFTER at least one non-empty response has arrived. Use this to bound\np99 latency when most upstreams are fast but one is a slow straggler:\nonce a real answer is in hand, give the rest at most this long to\nconfirm or dispute, then resolve with what we have.\n\nAccepts a duration scalar (\"200ms\") or an AdaptiveDuration object\n({base, quantile, min, max}) for adaptive caps driven by per-method\nlatency quantiles. Defaults are applied when consensus is configured\nbut this field is omitted — see common/defaults.go."
+        },
+        {
+          "key": "maxWaitOnEmpty",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "MaxWaitOnEmpty",
+          "goType": "*common.AdaptiveDuration",
+          "comment": "MaxWaitOnEmpty caps how long consensus waits for additional participants\nAFTER the first response (of any kind — empty, error, or non-empty)\nhas arrived. Typically set larger than MaxWaitOnResult because an\noperator is more patient when no useful data is in hand yet.\n\nSame shape as MaxWaitOnResult; defaults applied when consensus is set."
+        },
+        {
+          "key": "requiredParticipants",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "ConsensusRequiredParticipant"
+            }
+          },
+          "owner": "ConsensusPolicyConfig",
+          "goName": "RequiredParticipants",
+          "goType": "[]*common.ConsensusRequiredParticipant",
+          "comment": "RequiredParticipants enforces a minimum number of consensus\nparticipants carrying a given tag. Each entry says \"at least\n`minParticipants` of the upstreams that participate must match\n`tag`\". The engine front-loads enough tag-matching upstreams into\nthe participant set so the first `maxParticipants` drawn satisfy\nevery entry — without changing `maxParticipants` itself.\n\nBest-effort and governed by the EXISTING consensus behaviors: if a\nrequired group has fewer healthy upstreams than requested (or the\nquotas can't all fit within `maxParticipants`), consensus simply\nruns with what it can promote and the resulting participation is\nhandled by `lowParticipantsBehavior` / `agreementThreshold` exactly\nlike any other low-participation tick. Empty (default) = disabled."
+        }
+      ]
+    },
+    "ConsensusRequiredParticipant": {
+      "fields": [
+        {
+          "key": "tag",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ConsensusRequiredParticipant",
+          "goName": "Tag",
+          "goType": "string"
+        },
+        {
+          "key": "minParticipants",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ConsensusRequiredParticipant",
+          "goName": "MinParticipants",
+          "goType": "int"
+        },
+        {
+          "key": "minAgreement",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ConsensusRequiredParticipant",
+          "goName": "MinAgreement",
+          "goType": "int"
+        }
+      ]
+    },
+    "DatabaseConfig": {
+      "fields": [
+        {
+          "key": "evmJsonRpcCache",
+          "node": {
+            "kind": "object",
+            "ref": "CacheConfig"
+          },
+          "owner": "DatabaseConfig",
+          "goName": "EvmJsonRpcCache",
+          "goType": "*common.CacheConfig"
+        },
+        {
+          "key": "svmJsonRpcCache",
+          "node": {
+            "kind": "object",
+            "ref": "CacheConfig"
+          },
+          "owner": "DatabaseConfig",
+          "goName": "SvmJsonRpcCache",
+          "goType": "*common.CacheConfig"
+        },
+        {
+          "key": "sharedState",
+          "node": {
+            "kind": "object",
+            "ref": "SharedStateConfig"
+          },
+          "owner": "DatabaseConfig",
+          "goName": "SharedState",
+          "goType": "*common.SharedStateConfig"
+        }
+      ]
+    },
+    "DatabaseFailOpenConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DatabaseFailOpenConfig",
+          "goName": "Enabled",
+          "goType": "bool"
+        },
+        {
+          "key": "userId",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DatabaseFailOpenConfig",
+          "goName": "UserId",
+          "goType": "string"
+        },
+        {
+          "key": "rateLimitBudget",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DatabaseFailOpenConfig",
+          "goName": "RateLimitBudget",
+          "goType": "string"
+        }
+      ]
+    },
+    "DatabaseRetryConfig": {
+      "fields": [
+        {
+          "key": "maxAttempts",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "DatabaseRetryConfig",
+          "goName": "MaxAttempts",
+          "goType": "int"
+        },
+        {
+          "key": "baseBackoff",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DatabaseRetryConfig",
+          "goName": "BaseBackoff",
+          "goType": "common.Duration"
+        }
+      ]
+    },
+    "DatabaseStrategyCacheConfig": {
+      "fields": [
+        {
+          "key": "ttl",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DatabaseStrategyCacheConfig",
+          "goName": "TTL",
+          "goType": "*time.Duration"
+        },
+        {
+          "key": "maxSize",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "DatabaseStrategyCacheConfig",
+          "goName": "MaxSize",
+          "goType": "*int64"
+        },
+        {
+          "key": "maxCost",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "DatabaseStrategyCacheConfig",
+          "goName": "MaxCost",
+          "goType": "*int64"
+        },
+        {
+          "key": "numCounters",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "DatabaseStrategyCacheConfig",
+          "goName": "NumCounters",
+          "goType": "*int64"
+        }
+      ]
+    },
+    "DatabaseStrategyConfig": {
+      "fields": [
+        {
+          "key": "connector",
+          "node": {
+            "kind": "object",
+            "ref": "ConnectorConfig"
+          },
+          "owner": "DatabaseStrategyConfig",
+          "goName": "Connector",
+          "goType": "*common.ConnectorConfig"
+        },
+        {
+          "key": "cache",
+          "node": {
+            "kind": "object",
+            "ref": "DatabaseStrategyCacheConfig"
+          },
+          "owner": "DatabaseStrategyConfig",
+          "goName": "Cache",
+          "goType": "*common.DatabaseStrategyCacheConfig"
+        },
+        {
+          "key": "retry",
+          "node": {
+            "kind": "object",
+            "ref": "DatabaseRetryConfig"
+          },
+          "owner": "DatabaseStrategyConfig",
+          "goName": "Retry",
+          "goType": "*common.DatabaseRetryConfig"
+        },
+        {
+          "key": "failOpen",
+          "node": {
+            "kind": "object",
+            "ref": "DatabaseFailOpenConfig"
+          },
+          "owner": "DatabaseStrategyConfig",
+          "goName": "FailOpen",
+          "goType": "*common.DatabaseFailOpenConfig"
+        },
+        {
+          "key": "maxWait",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DatabaseStrategyConfig",
+          "goName": "MaxWait",
+          "goType": "common.Duration"
+        }
+      ]
+    },
+    "DirectiveDefaultsConfig": {
+      "fields": [
+        {
+          "key": "retryEmpty",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "RetryEmpty",
+          "goType": "*bool"
+        },
+        {
+          "key": "retryPending",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "RetryPending",
+          "goType": "*bool"
+        },
+        {
+          "key": "skipCacheRead",
+          "node": {
+            "kind": "any"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "SkipCacheRead",
+          "goType": "interface {}"
+        },
+        {
+          "key": "useUpstream",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "UseUpstream",
+          "goType": "*string"
+        },
+        {
+          "key": "skipInterpolation",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "SkipInterpolation",
+          "goType": "*bool"
+        },
+        {
+          "key": "skipConsensus",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "SkipConsensus",
+          "goType": "*bool"
+        },
+        {
+          "key": "enforceHighestBlock",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "EnforceHighestBlock",
+          "goType": "*bool",
+          "comment": "Validation: Block Integrity"
+        },
+        {
+          "key": "enforceGetLogsBlockRange",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "EnforceGetLogsBlockRange",
+          "goType": "*bool"
+        },
+        {
+          "key": "enforceNonNullTaggedBlocks",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "EnforceNonNullTaggedBlocks",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateTransactionsRoot",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateTransactionsRoot",
+          "goType": "*bool",
+          "comment": "--- Deprecated data-integrity validation flags ---\n\nDeprecated: data integrity is now configured via the `integrity` block\n(projects[].integrity / networks[].integrity). These per-check flags are\nretained only so existing YAML still parses. At startup the flags that map\nto a current check are translated into `integrity.checks` by\nmigrateLegacyIntegrityChecks (an explicit `integrity` block wins per check);\nthey are NOT read at runtime. The receipt-count / expected-block /\nreceipt-to-transaction flags have no equivalent in the new model and are\naccepted but ignored. See docs/pages/config/failsafe/integrity.mdx.",
+          "deprecated": true
+        },
+        {
+          "key": "validateHeaderFieldLengths",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateHeaderFieldLengths",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateTransactionFields",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateTransactionFields",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateTransactionBlockInfo",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateTransactionBlockInfo",
+          "goType": "*bool"
+        },
+        {
+          "key": "enforceLogIndexStrictIncrements",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedEnforceLogIndexStrictIncrements",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateTxHashUniqueness",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateTxHashUniqueness",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateTransactionIndex",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateTransactionIndex",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateLogFields",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateLogFields",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateLogsBloomEmptiness",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateLogsBloomEmptiness",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateLogsBloomMatch",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateLogsBloomMatch",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateReceiptTransactionMatch",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateReceiptTransactionMatch",
+          "goType": "*bool"
+        },
+        {
+          "key": "validateContractCreation",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidateContractCreation",
+          "goType": "*bool"
+        },
+        {
+          "key": "receiptsCountExact",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedReceiptsCountExact",
+          "goType": "*int64"
+        },
+        {
+          "key": "receiptsCountAtLeast",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedReceiptsCountAtLeast",
+          "goType": "*int64"
+        },
+        {
+          "key": "validationExpectedBlockHash",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidationExpectedBlockHash",
+          "goType": "*string"
+        },
+        {
+          "key": "validationExpectedBlockNumber",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "DirectiveDefaultsConfig",
+          "goName": "DeprecatedValidationExpectedBlockNumber",
+          "goType": "*int64"
+        }
+      ]
+    },
+    "DynamoDBConnectorConfig": {
+      "fields": [
+        {
+          "key": "table",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "Table",
+          "goType": "string"
+        },
+        {
+          "key": "region",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "Region",
+          "goType": "string"
+        },
+        {
+          "key": "endpoint",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "Endpoint",
+          "goType": "string"
+        },
+        {
+          "key": "auth",
+          "node": {
+            "kind": "object",
+            "ref": "AwsAuthConfig"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "Auth",
+          "goType": "*common.AwsAuthConfig"
+        },
+        {
+          "key": "partitionKeyName",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "PartitionKeyName",
+          "goType": "string"
+        },
+        {
+          "key": "rangeKeyName",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "RangeKeyName",
+          "goType": "string"
+        },
+        {
+          "key": "reverseIndexName",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "ReverseIndexName",
+          "goType": "string"
+        },
+        {
+          "key": "ttlAttributeName",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "TTLAttributeName",
+          "goType": "string"
+        },
+        {
+          "key": "initTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "InitTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "getTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "GetTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "setTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "SetTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "maxRetries",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "MaxRetries",
+          "goType": "int"
+        },
+        {
+          "key": "statePollInterval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "StatePollInterval",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "lockRetryInterval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "DynamoDBConnectorConfig",
+          "goName": "LockRetryInterval",
+          "goType": "common.Duration"
+        }
+      ]
+    },
+    "EvmAvailabilityBoundConfig": {
+      "fields": [
+        {
+          "key": "exactBlock",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmAvailabilityBoundConfig",
+          "goName": "ExactBlock",
+          "goType": "*int64"
+        },
+        {
+          "key": "latestBlockMinus",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmAvailabilityBoundConfig",
+          "goName": "LatestBlockMinus",
+          "goType": "*int64"
+        },
+        {
+          "key": "earliestBlockPlus",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmAvailabilityBoundConfig",
+          "goName": "EarliestBlockPlus",
+          "goType": "*int64"
+        },
+        {
+          "key": "probe",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "EvmAvailabilityBoundConfig",
+          "goName": "Probe",
+          "goType": "common.EvmAvailabilityProbeType"
+        },
+        {
+          "key": "updateRate",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "EvmAvailabilityBoundConfig",
+          "goName": "UpdateRate",
+          "goType": "common.Duration"
+        }
+      ]
+    },
+    "EvmBlockAvailabilityConfig": {
+      "fields": [
+        {
+          "key": "lower",
+          "node": {
+            "kind": "object",
+            "ref": "EvmAvailabilityBoundConfig"
+          },
+          "owner": "EvmBlockAvailabilityConfig",
+          "goName": "Lower",
+          "goType": "*common.EvmAvailabilityBoundConfig"
+        },
+        {
+          "key": "upper",
+          "node": {
+            "kind": "object",
+            "ref": "EvmAvailabilityBoundConfig"
+          },
+          "owner": "EvmBlockAvailabilityConfig",
+          "goName": "Upper",
+          "goType": "*common.EvmAvailabilityBoundConfig"
+        }
+      ]
+    },
+    "EvmIntegrityConfig": {
+      "fields": [
+        {
+          "key": "enforceHighestBlock",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmIntegrityConfig",
+          "goName": "EnforceHighestBlock",
+          "goType": "*bool",
+          "comment": "@deprecated: use DirectiveDefaults.EnforceHighestBlock",
+          "deprecated": true
+        },
+        {
+          "key": "enforceGetLogsBlockRange",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmIntegrityConfig",
+          "goName": "EnforceGetLogsBlockRange",
+          "goType": "*bool",
+          "comment": "@deprecated: use DirectiveDefaults.EnforceGetLogsBlockRange",
+          "deprecated": true
+        },
+        {
+          "key": "enforceNonNullTaggedBlocks",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmIntegrityConfig",
+          "goName": "EnforceNonNullTaggedBlocks",
+          "goType": "*bool",
+          "comment": "@deprecated: use DirectiveDefaults.EnforceNonNullTaggedBlocks",
+          "deprecated": true
+        }
+      ]
+    },
+    "EvmNetworkConfig": {
+      "fields": [
+        {
+          "key": "chainId",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "ChainId",
+          "goType": "int64"
+        },
+        {
+          "key": "fallbackFinalityDepth",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "FallbackFinalityDepth",
+          "goType": "int64"
+        },
+        {
+          "key": "fallbackStatePollerDebounce",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "FallbackStatePollerDebounce",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "integrity",
+          "node": {
+            "kind": "object",
+            "ref": "EvmIntegrityConfig"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "Integrity",
+          "goType": "*common.EvmIntegrityConfig"
+        },
+        {
+          "key": "servedTip",
+          "node": {
+            "kind": "object",
+            "ref": "EvmServedTipConfig"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "ServedTip",
+          "goType": "*common.EvmServedTipConfig",
+          "comment": "ServedTip configures how the network derives the \"latest\"/\"finalized\"\nblock it advertises to clients (and enforces via block-availability).\nNil or disabled selects the default max mode (MAX latest across eligible\nupstreams); set Enabled to opt into the cluster-min tip. See\nEvmServedTipConfig."
+        },
+        {
+          "key": "getLogsMaxAllowedRange",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "GetLogsMaxAllowedRange",
+          "goType": "int64"
+        },
+        {
+          "key": "getLogsMaxAllowedAddresses",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "GetLogsMaxAllowedAddresses",
+          "goType": "int64"
+        },
+        {
+          "key": "getLogsMaxAllowedTopics",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "GetLogsMaxAllowedTopics",
+          "goType": "int64"
+        },
+        {
+          "key": "getLogsSplitOnError",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "GetLogsSplitOnError",
+          "goType": "*bool"
+        },
+        {
+          "key": "getLogsSplitConcurrency",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "GetLogsSplitConcurrency",
+          "goType": "int"
+        },
+        {
+          "key": "traceFilterSplitOnError",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "TraceFilterSplitOnError",
+          "goType": "*bool",
+          "comment": "TraceFilterSplitOnError controls reactive splitting for trace_filter and\narbtrace_filter requests when the upstream returns a range-too-large error.\nNil disables the feature."
+        },
+        {
+          "key": "traceFilterSplitConcurrency",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "TraceFilterSplitConcurrency",
+          "goType": "int",
+          "comment": "TraceFilterSplitConcurrency caps in-flight sub-requests when a trace_filter\nor arbtrace_filter request is split. Zero falls back to 10."
+        },
+        {
+          "key": "enforceBlockAvailability",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "EnforceBlockAvailability",
+          "goType": "*bool",
+          "comment": "EnforceBlockAvailability controls whether the network should enforce per-upstream\nblock availability bounds (upper/lower) for methods by default. Method-level config may override.\nWhen nil or true, enforcement is enabled."
+        },
+        {
+          "key": "maxRetryableBlockDistance",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "MaxRetryableBlockDistance",
+          "goType": "*int64",
+          "comment": "MaxRetryableBlockDistance controls the maximum block distance for which an upstream\nblock unavailability error is considered retryable. If the requested block is within\nthis distance from the upstream's latest block, the error is retryable (upstream may catch up).\nIf the distance is larger, the error is not retryable (upstream is too far behind).\nDefault: 128 blocks."
+        },
+        {
+          "key": "markEmptyAsErrorMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "MarkEmptyAsErrorMethods",
+          "goType": "[]string",
+          "comment": "MarkEmptyAsErrorMethods lists methods for which an empty/null result from an upstream\nshould be treated as a \"missing data\" error, triggering retry on other upstreams.\nThis is useful for point-lookups (blocks, transactions, receipts, traces) where an\nempty result likely means the upstream hasn't indexed that data yet.\nDefault includes common point-lookup methods like eth_getBlockByNumber, eth_getTransactionByHash, etc."
+        },
+        {
+          "key": "dynamicBlockTimeDebounceMultiplier",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "DynamicBlockTimeDebounceMultiplier",
+          "goType": "*float64",
+          "comment": "DynamicBlockTimeDebounceMultiplier scales the EMA-estimated block time to derive\nthe debounce interval for block polling. A value of 0.7 means debounce = 70% of\nthe estimated block time, preferring fresher data at the cost of slightly more\npolling. Lower values reduce staleness risk; higher values reduce RPC calls.\nDefault: 0.7 (30% under the estimated block time)."
+        },
+        {
+          "key": "blockUnavailableDelayMultiplier",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "BlockUnavailableDelayMultiplier",
+          "goType": "*float64",
+          "comment": "BlockUnavailableDelayMultiplier scales the EMA-estimated block time to derive the\nretry delay when the requested data isn't available yet (ErrUpstreamBlockUnavailable\nor an empty/missing-data point-lookup). When the dynamic block time is known, the\ndelay is blockTime * this multiplier. Falls back to the static\nRetryPolicyConfig.EmptyResultDelay when block time is not yet available. Default: 1.0."
+        },
+        {
+          "key": "idempotentTransactionBroadcast",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "IdempotentTransactionBroadcast",
+          "goType": "*bool",
+          "comment": "IdempotentTransactionBroadcast enables idempotency handling for eth_sendRawTransaction.\nWhen enabled (default), \"already known\" and verified \"nonce too low\" errors are converted\nto success responses with the transaction hash. This allows failsafe policies (retry/hedge)\nto work safely with transaction broadcasting.\nSet to false to disable this behavior and return raw upstream errors."
+        },
+        {
+          "key": "emptyResultConfidence",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "EmptyResultConfidence",
+          "goType": "common.AvailbilityConfidence",
+          "comment": "EmptyResultConfidence sets how confirmed a concrete numeric block must be for an\nempty/null point-lookup result to be treated as retryable missing-data, versus a\ntruthful \"not yet produced/confirmed\" empty returned without retrying. Applies to\nMarkEmptyAsErrorMethods when the RetryEmpty directive is on; tags and block-hash\nlookups never qualify, and it fails open when the head is unknown.\n  - blockHead (default): retry empties for blocks at/below the latest head; a\n    block above the head isn't produced yet → return the empty truthfully.\n  - finalizedBlock: stricter — only retry empties for blocks at/below the\n    finalized head; an unfinalized block's empty is treated as not-yet-confirmed."
+        },
+        {
+          "key": "safeBlockSource",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "SafeBlockSource",
+          "goType": "string",
+          "comment": "SafeBlockSource is an upstream id/tag selector for standard JSON-RPC\nrequests carrying the `safe` block tag. Matching upstreams define and\nserve `safe`; empty (without an inherited network default) keeps existing\nprovider-defined routing. This does not affect eth_query* or gRPC Query."
+        },
+        {
+          "key": "maxFutureBlockRetryDistance",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmNetworkConfig",
+          "goName": "MaxFutureBlockRetryDistance",
+          "goType": "*int64",
+          "comment": "Deprecated: replaced by EmptyResultConfidence (blockHead). Retained as a yaml-only\nkey so existing configs keep loading; SetDefaults warns and ignores it. The old\nnumeric distance band is gone — use emptyResultConfidence instead.",
+          "deprecated": true
+        }
+      ]
+    },
+    "EvmQueryShimConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmQueryShimConfig",
+          "goName": "Enabled",
+          "goType": "*bool"
+        },
+        {
+          "key": "allowedMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "EvmQueryShimConfig",
+          "goName": "AllowedMethods",
+          "goType": "[]string"
+        },
+        {
+          "key": "concurrency",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmQueryShimConfig",
+          "goName": "Concurrency",
+          "goType": "int"
+        },
+        {
+          "key": "maxBlockRange",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmQueryShimConfig",
+          "goName": "MaxBlockRange",
+          "goType": "int64"
+        },
+        {
+          "key": "maxLimit",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmQueryShimConfig",
+          "goName": "MaxLimit",
+          "goType": "int"
+        },
+        {
+          "key": "defaultLimit",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmQueryShimConfig",
+          "goName": "DefaultLimit",
+          "goType": "int"
+        }
+      ]
+    },
+    "EvmServedTipConfig": {
+      "fields": [
+        {
+          "key": "enabledFor",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "EvmServedTipConfig",
+          "goName": "EnabledFor",
+          "goType": "[]string",
+          "comment": "EnabledFor lists the block tags whose served value uses the cluster-min tip\ninstead of the default max. Valid entries: \"latest\" and \"finalized\" (the\n\"safe\" tag follows \"finalized\"). Empty selects the max mode for all tags."
+        },
+        {
+          "key": "clusterDelta",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmServedTipConfig",
+          "goName": "ClusterDelta",
+          "goType": "int64",
+          "comment": "Deprecated: ClusterDelta configured the former cluster-based picker and is\nignored — the majority order statistic needs no tuning. Kept only so\nexisting configs keep parsing.",
+          "deprecated": true
+        },
+        {
+          "key": "guaranteedMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "EvmServedTipConfig",
+          "goName": "GuaranteedMethods",
+          "goType": "[]string",
+          "comment": "GuaranteedMethods lists method name patterns (glob; e.g. \"trace_*\",\n\"debug_traceBlockByNumber\") whose supporting-upstream subset must be able to\nserve the advertised latest. For a request on a matching method, \"latest\"\nresolves against the majority of only the upstreams that support it\n(membership auto-detected via ShouldHandleMethod — no per-upstream config).\nEmpty means only the global (all-eligible) majority is computed."
+        },
+        {
+          "key": "maxRegressionBlocks",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmServedTipConfig",
+          "goName": "MaxRegressionBlocks",
+          "goType": "int64",
+          "comment": "MaxRegressionBlocks is how far below the corroborated LIVE upstream head\n(the second-highest live head) the majority pick may fall before it is\ntreated as a poisoned ballot rather than as reality. While a pick is below\nthat bound the network keeps serving its last corroborated pick\n(in-process, for at most one minute, then it fails open and serves the\npick as computed). 0 uses DefaultToleratedBlockHeadRollback (1024) — the\nsame rollback tolerance the state poller and health tracker apply to a\nretreating head, so all three layers agree on what counts as a genuine\ndeep correction. -1 disables the regression guard entirely (the symmetric\nopposite of trajectoryWindow: 0); no other negative value is accepted."
+        },
+        {
+          "key": "trajectoryWindow",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "EvmServedTipConfig",
+          "goName": "TrajectoryWindow",
+          "goType": "*common.Duration",
+          "comment": "TrajectoryWindow is how much recorded head history the trajectory referee\nneeds before it may participate in the pick. The referee tracks where this\nnetwork's head has been over the window and, when a stalled group holds\nthe majority, serves the corroborated group that is actually where the\nchain should be by now (see architecture/evm's TipTrajectory: advisory,\nupward-only, in-process, and a no-op until every confidence condition\nholds). Unset uses DefaultServedTipTrajectoryWindow (10m); an explicit 0\ndisables the referee entirely — nothing is recorded and the pick is the\nplain majority. Any other value must be between\nMinServedTipTrajectoryWindow and MaxServedTipTrajectoryWindow: below the\nminimum the window is self-defeating (it must be long enough that a stall\ncannot look like a trajectory), and above the maximum the sample ring can\nnever span it, so the referee would stand down forever while looking\nconfigured. WRITE IT AS A DURATION STRING — trajectoryWindow: \"10m\". A\nbare number is parsed as MILLISECONDS."
+        }
+      ]
+    },
+    "EvmUpstreamConfig": {
+      "fields": [
+        {
+          "key": "chainId",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "ChainId",
+          "goType": "int64"
+        },
+        {
+          "key": "statePollerInterval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "StatePollerInterval",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "statePollerDebounce",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "StatePollerDebounce",
+          "goType": "common.Duration",
+          "comment": "StatePollerDebounce overrides the debounce interval for the state poller.\nWhen 0 (default), the interval is dynamically inferred from the chain's\nobserved block time, falling back to the network-level\nFallbackStatePollerDebounce, then to a 1s floor."
+        },
+        {
+          "key": "blockAvailability",
+          "node": {
+            "kind": "object",
+            "ref": "EvmBlockAvailabilityConfig"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "BlockAvailability",
+          "goType": "*common.EvmBlockAvailabilityConfig"
+        },
+        {
+          "key": "getLogsAutoSplittingRangeThreshold",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "GetLogsAutoSplittingRangeThreshold",
+          "goType": "int64"
+        },
+        {
+          "key": "traceFilterAutoSplittingRangeThreshold",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "TraceFilterAutoSplittingRangeThreshold",
+          "goType": "int64",
+          "comment": "TraceFilterAutoSplittingRangeThreshold proactively splits trace_filter and\narbtrace_filter requests whose block range exceeds this value into contiguous\nsub-requests executed concurrently and merged before returning. Zero disables\nthe feature."
+        },
+        {
+          "key": "skipWhenSyncing",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "SkipWhenSyncing",
+          "goType": "*bool"
+        },
+        {
+          "key": "skipSyncingCheck",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "SkipSyncingCheck",
+          "goType": "*bool",
+          "comment": "SkipSyncingCheck disables eth_syncing polling for this upstream, treating it as always synced.\nUse for nodes that always return a syncing object (e.g. Pharos/Antora) where the response is\nmisleading and causes circuit breaker false positives."
+        },
+        {
+          "key": "headLagToleranceBlocks",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "HeadLagToleranceBlocks",
+          "goType": "int64",
+          "comment": "HeadLagToleranceBlocks lets the block-availability gate send requests pinned up to N blocks\nABOVE this upstream's observed head instead of rerouting them as stale. Useful for upstreams\nthat follow the chain tightly but become able to serve a new block a moment after it is\nannounced elsewhere (they hold or briefly wait for the block internally): with a hard\nhead comparison every request pinned at head+1 in that moment is rerouted even though the\nupstream would have answered it. 0 (default) keeps the exact head comparison."
+        },
+        {
+          "key": "integrity",
+          "node": {
+            "kind": "object",
+            "ref": "UpstreamIntegrityConfig"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "DeprecatedIntegrity",
+          "goType": "*common.UpstreamIntegrityConfig",
+          "comment": "Deprecated: never read at runtime. Configure data integrity via the network\n`integrity` block instead. Retained only so existing YAML still parses.",
+          "deprecated": true
+        },
+        {
+          "key": "nodeType",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "NodeType",
+          "goType": "common.EvmNodeType",
+          "comment": "@deprecated: use blockAvailability bounds instead; kept for config back-compat only",
+          "deprecated": true
+        },
+        {
+          "key": "maxAvailableRecentBlocks",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "MaxAvailableRecentBlocks",
+          "goType": "int64",
+          "comment": "@deprecated: should be removed in a future release",
+          "deprecated": true
+        },
+        {
+          "key": "getLogsMaxAllowedRange",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "DeprecatedGetLogsMaxAllowedRange",
+          "goType": "int64",
+          "comment": "@deprecated: should be removed in a future release",
+          "deprecated": true
+        },
+        {
+          "key": "getLogsMaxAllowedAddresses",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "DeprecatedGetLogsMaxAllowedAddresses",
+          "goType": "int64",
+          "comment": "@deprecated: should be removed in a future release",
+          "deprecated": true
+        },
+        {
+          "key": "getLogsMaxAllowedTopics",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "DeprecatedGetLogsMaxAllowedTopics",
+          "goType": "int64",
+          "comment": "@deprecated: should be removed in a future release",
+          "deprecated": true
+        },
+        {
+          "key": "getLogsSplitOnError",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "DeprecatedGetLogsSplitOnError",
+          "goType": "*bool",
+          "comment": "@deprecated: should be removed in a future release",
+          "deprecated": true
+        },
+        {
+          "key": "getLogsMaxBlockRange",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "DeprecatedGetLogsMaxBlockRange",
+          "goType": "int64",
+          "comment": "@deprecated: should be removed in a future release",
+          "deprecated": true
+        },
+        {
+          "key": "queryShim",
+          "node": {
+            "kind": "object",
+            "ref": "EvmQueryShimConfig"
+          },
+          "owner": "EvmUpstreamConfig",
+          "goName": "QueryShim",
+          "goType": "*common.EvmQueryShimConfig"
+        }
+      ]
+    },
+    "FailsafeConfig": {
+      "fields": [
+        {
+          "key": "matchMethod",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "FailsafeConfig",
+          "goName": "MatchMethod",
+          "goType": "string"
+        },
+        {
+          "key": "matchFinality",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "number"
+            }
+          },
+          "owner": "FailsafeConfig",
+          "goName": "MatchFinality",
+          "goType": "[]common.DataFinalityState"
+        },
+        {
+          "key": "matchRequestKind",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "FailsafeConfig",
+          "goName": "MatchRequestKind",
+          "goType": "string",
+          "comment": "MatchRequestKind scopes this policy by who issued the request:\n\"user\" (client traffic), \"internal\" (erpc's own auxiliary fetches, e.g.\nthe integrity module's canonical corroboration), or \"\"/\"*\" for both.\nThis is what lets an operator give INTERNAL canonical fetches a\nconsensus policy (quorum-verified ground truth, deduplicated to ~once\nper block by the ChainView) while user data methods rely on integrity\nvalidation instead of per-request fan-out."
+        },
+        {
+          "key": "retry",
+          "node": {
+            "kind": "object",
+            "ref": "RetryPolicyConfig"
+          },
+          "owner": "FailsafeConfig",
+          "goName": "Retry",
+          "goType": "*common.RetryPolicyConfig"
+        },
+        {
+          "key": "circuitBreaker",
+          "node": {
+            "kind": "object",
+            "ref": "CircuitBreakerPolicyConfig"
+          },
+          "owner": "FailsafeConfig",
+          "goName": "CircuitBreaker",
+          "goType": "*common.CircuitBreakerPolicyConfig"
+        },
+        {
+          "key": "timeout",
+          "node": {
+            "kind": "object",
+            "ref": "TimeoutPolicyConfig"
+          },
+          "owner": "FailsafeConfig",
+          "goName": "Timeout",
+          "goType": "*common.TimeoutPolicyConfig"
+        },
+        {
+          "key": "hedge",
+          "node": {
+            "kind": "object",
+            "ref": "HedgePolicyConfig"
+          },
+          "owner": "FailsafeConfig",
+          "goName": "Hedge",
+          "goType": "*common.HedgePolicyConfig"
+        },
+        {
+          "key": "consensus",
+          "node": {
+            "kind": "object",
+            "ref": "ConsensusPolicyConfig"
+          },
+          "owner": "FailsafeConfig",
+          "goName": "Consensus",
+          "goType": "*common.ConsensusPolicyConfig"
+        }
+      ]
+    },
+    "ForceTraceMatcher": {
+      "fields": [
+        {
+          "key": "network",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ForceTraceMatcher",
+          "goName": "Network",
+          "goType": "string",
+          "comment": "Network patterns to match (e.g., \"evm:1\", \"evm:1|evm:42161\", \"evm:*\")\nMultiple patterns separated by \"|\" act as OR conditions."
+        },
+        {
+          "key": "method",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ForceTraceMatcher",
+          "goName": "Method",
+          "goType": "string",
+          "comment": "Method patterns to match (e.g., \"eth_call\", \"debug_*|trace_*\")\nMultiple patterns separated by \"|\" act as OR conditions."
+        }
+      ]
+    },
+    "GrpcConnectorConfig": {
+      "fields": [
+        {
+          "key": "bootstrap",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "GrpcConnectorConfig",
+          "goName": "Bootstrap",
+          "goType": "string"
+        },
+        {
+          "key": "servers",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "GrpcConnectorConfig",
+          "goName": "Servers",
+          "goType": "[]string"
+        },
+        {
+          "key": "headers",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "string"
+            }
+          },
+          "owner": "GrpcConnectorConfig",
+          "goName": "Headers",
+          "goType": "map[string]string"
+        },
+        {
+          "key": "getTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "GrpcConnectorConfig",
+          "goName": "GetTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "networkId",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "GrpcConnectorConfig",
+          "goName": "NetworkId",
+          "goType": "string",
+          "comment": "NetworkId pins every server in this connector to one network and skips\nthe eth_chainId bootstrap probe.\n\nRequired for SVM. Solana has no numeric chain id — cluster identity is\nthe genesis hash — and eth_chainId returns Unimplemented, so the probe\nfails and no client is ever registered. Probing GetGenesisHash instead\nis not an option either: the BDS reader deliberately does not publish\none until it can verify its own, so identity here has to be asserted by\nconfiguration rather than discovered.\n\nLeave unset for EVM to keep the probe, which also arms the per-request\nchain-identity assertion that catches an endpoint cross-wired LATER — a\nstatic binding cannot."
+        },
+        {
+          "key": "poolSize",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "GrpcConnectorConfig",
+          "goName": "PoolSize",
+          "goType": "int",
+          "comment": "PoolSize is the number of independent gRPC connections opened to each\nbacking server, selected round-robin per request. Larger values raise the\nconcurrent-stream ceiling and shrink the blast radius of a single wedged\nconnection, at the cost of more open connections per server. When unset\n(0) a built-in default is used."
+        }
+      ]
+    },
+    "GrpcUpstreamConfig": {
+      "fields": [
+        {
+          "key": "headers",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "string"
+            }
+          },
+          "owner": "GrpcUpstreamConfig",
+          "goName": "Headers",
+          "goType": "map[string]string"
+        },
+        {
+          "key": "poolSize",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "GrpcUpstreamConfig",
+          "goName": "PoolSize",
+          "goType": "int",
+          "comment": "PoolSize is the number of independent gRPC connections opened to this\nupstream, selected round-robin per request. See GrpcConnectorConfig.PoolSize.\nWhen unset (0) a built-in default is used."
+        }
+      ]
+    },
+    "HealthCheckConfig": {
+      "fields": [
+        {
+          "key": "mode",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "HealthCheckConfig",
+          "goName": "Mode",
+          "goType": "common.HealthCheckMode"
+        },
+        {
+          "key": "auth",
+          "node": {
+            "kind": "object",
+            "ref": "AuthConfig"
+          },
+          "owner": "HealthCheckConfig",
+          "goName": "Auth",
+          "goType": "*common.AuthConfig"
+        },
+        {
+          "key": "defaultEval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "HealthCheckConfig",
+          "goName": "DefaultEval",
+          "goType": "string"
+        }
+      ]
+    },
+    "HedgePolicyConfig": {
+      "fields": [
+        {
+          "key": "delay",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "HedgePolicyConfig",
+          "goName": "Delay",
+          "goType": "*common.AdaptiveDuration"
+        },
+        {
+          "key": "maxCount",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "HedgePolicyConfig",
+          "goName": "MaxCount",
+          "goType": "int"
+        }
+      ]
+    },
+    "IntegrityBudgetConfig": {
+      "fields": [
+        {
+          "key": "maxPerSecond",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "IntegrityBudgetConfig",
+          "goName": "MaxPerSecond",
+          "goType": "int"
+        },
+        {
+          "key": "maxConcurrent",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "IntegrityBudgetConfig",
+          "goName": "MaxConcurrent",
+          "goType": "int"
+        }
+      ]
+    },
+    "IntegrityCheckConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "IntegrityCheckConfig",
+          "goName": "Enabled",
+          "goType": "*bool",
+          "comment": "Enabled forces the check on/off; nil leaves the level's decision intact."
+        },
+        {
+          "key": "params",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "string"
+            }
+          },
+          "owner": "IntegrityCheckConfig",
+          "goName": "Params",
+          "goType": "map[string]string",
+          "comment": "Params are check-specific knobs (e.g. bloom equality-vs-superset)."
+        },
+        {
+          "key": "onFailure",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "IntegrityCheckConfig",
+          "goName": "OnFailure",
+          "goType": "string",
+          "comment": "OnFailure overrides this check's failure mode: reject | soft-flag."
+        }
+      ]
+    },
+    "IntegrityConfig": {
+      "fields": [
+        {
+          "key": "level",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "IntegritySettings",
+          "goName": "Level",
+          "goType": "string",
+          "comment": "Level is the front-door preset: off | intrinsic | corroborated | authoritative."
+        },
+        {
+          "key": "checks",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "object",
+              "ref": "IntegrityCheckConfig"
+            }
+          },
+          "owner": "IntegritySettings",
+          "goName": "Checks",
+          "goType": "map[string]*common.IntegrityCheckConfig",
+          "comment": "Checks overrides individual checks by their catalog id (enable/disable,\nparams, per-check failure mode)."
+        },
+        {
+          "key": "budget",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityBudgetConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "Budget",
+          "goType": "*common.IntegrityBudgetConfig",
+          "comment": "Budget caps the canonical force-fetches the authoritative tier issues."
+        },
+        {
+          "key": "invalidBehavior",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityInvalidBehaviorConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "InvalidBehavior",
+          "goType": "*common.IntegrityInvalidBehaviorConfig",
+          "comment": "InvalidBehavior is the per-finality verdict for reorg-sensitive checks,\nwhere invalid data is ambiguously a node bug or a reorg. Deterministic\nchecks ignore it and always reject."
+        },
+        {
+          "key": "reorgWindow",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "IntegritySettings",
+          "goName": "ReorgWindow",
+          "goType": "int",
+          "comment": "ReorgWindow is how many blocks back from the tip the integrity ChainView\nkeeps a number→hash pin + header and tracks reorgs (default 32). Raise for\ndeep-reorg chains (e.g. polygon 256)."
+        },
+        {
+          "key": "observeOnly",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "IntegritySettings",
+          "goName": "ObserveOnly",
+          "goType": "*bool",
+          "comment": "ObserveOnly runs every enabled check but never lets a verdict touch the\nresponse: violations that WOULD have been rejected are recorded with the\noutcome \"would_reject\" and served anyway. This is the safe way to enable\nintegrity on a network for the first time — it reveals both bad upstream\ndata AND the module's own gaps on that chain at zero request risk, and\nthe would_reject rate is exactly the client-facing cost enforcement\nwould incur.\n\nIt is ABSOLUTE and overrides everything else, including a per-check\nonFailure: reject and invalidBehavior — so a future release adding a new\ncheck cannot start rejecting on an observe-only network. Deterministic\nchecks are covered too, which invalidBehavior alone cannot do (they\nignore it by design)."
+        },
+        {
+          "key": "stateProbe",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityStateProbeConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "StateProbe",
+          "goType": "*common.IntegrityStateProbeConfig",
+          "comment": "StateProbe proves, per upstream, that the node actually holds the state\ntrie it claims: on each new followed block, probe every upstream with an\nexecution-context call (and eth_getProof where supported) verified\nagainst the follower's verified header, and advance that upstream's\nstate-proven head only on success. Routing for state methods (eth_call,\neth_getBalance, ...) then refuses to outrun proof. Requires follow to be\nenabled (the verified header is the trust anchor). Off by default."
+        },
+        {
+          "key": "follow",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityFollowConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "Follow",
+          "goType": "*common.IntegrityFollowConfig",
+          "comment": "Follow turns the ChainView into an actual chain follower: it walks the\nchain forward block by block, requires each block to name its\npredecessor's hash, and reconciles reorgs by finding the common ancestor.\nOff by default — it costs one eth_getBlockByNumber per block per network."
+        },
+        {
+          "key": "misbehaviorsDestination",
+          "node": {
+            "kind": "object",
+            "ref": "MisbehaviorsDestinationConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "MisbehaviorsDestination",
+          "goType": "*common.MisbehaviorsDestinationConfig",
+          "comment": "MisbehaviorsDestination durably archives every integrity catch (reject or\nsoft-flag) as a JSONL record — same file/S3 destination shape as the\nconsensus policy's misbehaviorsDestination. Catches are rare, so the\nvolume is low; the archive is the forensic record metrics can't carry."
+        },
+        {
+          "key": "headerMode",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "IntegrityConfig",
+          "goName": "HeaderMode",
+          "goType": "string",
+          "comment": "HeaderMode controls whether/how per-request X-ERPC-Integrity headers may\nadjust integrity: off | profiles | full. Defaults to off."
+        },
+        {
+          "key": "profiles",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "object",
+              "ref": "IntegritySettings"
+            }
+          },
+          "owner": "IntegrityConfig",
+          "goName": "Profiles",
+          "goType": "map[string]*common.IntegritySettings",
+          "comment": "Profiles are named settings an operator defines; a request may select one\nby name via header when HeaderMode permits."
+        }
+      ]
+    },
+    "IntegrityFollowConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "IntegrityFollowConfig",
+          "goName": "Enabled",
+          "goType": "*bool",
+          "comment": "Enabled turns the follower on for this network. Default false."
+        },
+        {
+          "key": "interval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "IntegrityFollowConfig",
+          "goName": "Interval",
+          "goType": "common.Duration",
+          "comment": "Interval is how often to check for new blocks (default 1s). Keep it below\nthe chain's block time or the follower will run a step behind."
+        },
+        {
+          "key": "maxBlocksPerTick",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "IntegrityFollowConfig",
+          "goName": "MaxBlocksPerTick",
+          "goType": "int",
+          "comment": "MaxBlocksPerTick bounds catch-up work per tick (default 16), so a\nfollower starting far behind converges steadily instead of bursting."
+        }
+      ]
+    },
+    "IntegrityInvalidBehaviorConfig": {
+      "fields": [
+        {
+          "key": "finalized",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "IntegrityInvalidBehaviorConfig",
+          "goName": "Finalized",
+          "goType": "string"
+        },
+        {
+          "key": "unfinalized",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "IntegrityInvalidBehaviorConfig",
+          "goName": "Unfinalized",
+          "goType": "string"
+        }
+      ]
+    },
+    "IntegritySettings": {
+      "fields": [
+        {
+          "key": "level",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "IntegritySettings",
+          "goName": "Level",
+          "goType": "string",
+          "comment": "Level is the front-door preset: off | intrinsic | corroborated | authoritative."
+        },
+        {
+          "key": "checks",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "object",
+              "ref": "IntegrityCheckConfig"
+            }
+          },
+          "owner": "IntegritySettings",
+          "goName": "Checks",
+          "goType": "map[string]*common.IntegrityCheckConfig",
+          "comment": "Checks overrides individual checks by their catalog id (enable/disable,\nparams, per-check failure mode)."
+        },
+        {
+          "key": "budget",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityBudgetConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "Budget",
+          "goType": "*common.IntegrityBudgetConfig",
+          "comment": "Budget caps the canonical force-fetches the authoritative tier issues."
+        },
+        {
+          "key": "invalidBehavior",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityInvalidBehaviorConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "InvalidBehavior",
+          "goType": "*common.IntegrityInvalidBehaviorConfig",
+          "comment": "InvalidBehavior is the per-finality verdict for reorg-sensitive checks,\nwhere invalid data is ambiguously a node bug or a reorg. Deterministic\nchecks ignore it and always reject."
+        },
+        {
+          "key": "reorgWindow",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "IntegritySettings",
+          "goName": "ReorgWindow",
+          "goType": "int",
+          "comment": "ReorgWindow is how many blocks back from the tip the integrity ChainView\nkeeps a number→hash pin + header and tracks reorgs (default 32). Raise for\ndeep-reorg chains (e.g. polygon 256)."
+        },
+        {
+          "key": "observeOnly",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "IntegritySettings",
+          "goName": "ObserveOnly",
+          "goType": "*bool",
+          "comment": "ObserveOnly runs every enabled check but never lets a verdict touch the\nresponse: violations that WOULD have been rejected are recorded with the\noutcome \"would_reject\" and served anyway. This is the safe way to enable\nintegrity on a network for the first time — it reveals both bad upstream\ndata AND the module's own gaps on that chain at zero request risk, and\nthe would_reject rate is exactly the client-facing cost enforcement\nwould incur.\n\nIt is ABSOLUTE and overrides everything else, including a per-check\nonFailure: reject and invalidBehavior — so a future release adding a new\ncheck cannot start rejecting on an observe-only network. Deterministic\nchecks are covered too, which invalidBehavior alone cannot do (they\nignore it by design)."
+        },
+        {
+          "key": "stateProbe",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityStateProbeConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "StateProbe",
+          "goType": "*common.IntegrityStateProbeConfig",
+          "comment": "StateProbe proves, per upstream, that the node actually holds the state\ntrie it claims: on each new followed block, probe every upstream with an\nexecution-context call (and eth_getProof where supported) verified\nagainst the follower's verified header, and advance that upstream's\nstate-proven head only on success. Routing for state methods (eth_call,\neth_getBalance, ...) then refuses to outrun proof. Requires follow to be\nenabled (the verified header is the trust anchor). Off by default."
+        },
+        {
+          "key": "follow",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityFollowConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "Follow",
+          "goType": "*common.IntegrityFollowConfig",
+          "comment": "Follow turns the ChainView into an actual chain follower: it walks the\nchain forward block by block, requires each block to name its\npredecessor's hash, and reconciles reorgs by finding the common ancestor.\nOff by default — it costs one eth_getBlockByNumber per block per network."
+        },
+        {
+          "key": "misbehaviorsDestination",
+          "node": {
+            "kind": "object",
+            "ref": "MisbehaviorsDestinationConfig"
+          },
+          "owner": "IntegritySettings",
+          "goName": "MisbehaviorsDestination",
+          "goType": "*common.MisbehaviorsDestinationConfig",
+          "comment": "MisbehaviorsDestination durably archives every integrity catch (reject or\nsoft-flag) as a JSONL record — same file/S3 destination shape as the\nconsensus policy's misbehaviorsDestination. Catches are rare, so the\nvolume is low; the archive is the forensic record metrics can't carry."
+        }
+      ]
+    },
+    "IntegrityStateProbeConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "IntegrityStateProbeConfig",
+          "goName": "Enabled",
+          "goType": "*bool",
+          "comment": "Enabled turns the probes on. Default false."
+        },
+        {
+          "key": "interval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "IntegrityStateProbeConfig",
+          "goName": "Interval",
+          "goType": "common.Duration",
+          "comment": "Interval is the minimum time between probes of the same upstream\n(default 2s) — a bound on probe cost, not a schedule; probes fire on\nfollowed-block arrival."
+        }
+      ]
+    },
+    "JsonRpcUpstreamConfig": {
+      "fields": [
+        {
+          "key": "supportsBatch",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "JsonRpcUpstreamConfig",
+          "goName": "SupportsBatch",
+          "goType": "*bool"
+        },
+        {
+          "key": "batchMaxSize",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "JsonRpcUpstreamConfig",
+          "goName": "BatchMaxSize",
+          "goType": "int"
+        },
+        {
+          "key": "batchMaxWait",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "JsonRpcUpstreamConfig",
+          "goName": "BatchMaxWait",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "enableGzip",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "JsonRpcUpstreamConfig",
+          "goName": "EnableGzip",
+          "goType": "*bool"
+        },
+        {
+          "key": "headers",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "string"
+            }
+          },
+          "owner": "JsonRpcUpstreamConfig",
+          "goName": "Headers",
+          "goType": "map[string]string"
+        },
+        {
+          "key": "proxyPool",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "JsonRpcUpstreamConfig",
+          "goName": "ProxyPool",
+          "goType": "string"
+        }
+      ]
+    },
+    "JwtStrategyConfig": {
+      "fields": [
+        {
+          "key": "allowedIssuers",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "AllowedIssuers",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowedAudiences",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "AllowedAudiences",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowedAlgorithms",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "AllowedAlgorithms",
+          "goType": "[]string"
+        },
+        {
+          "key": "requiredClaims",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "RequiredClaims",
+          "goType": "[]string"
+        },
+        {
+          "key": "claimMatchers",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "array",
+              "item": {
+                "kind": "string"
+              }
+            }
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "ClaimMatchers",
+          "goType": "map[string][]string"
+        },
+        {
+          "key": "verificationKeys",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "string"
+            }
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "VerificationKeys",
+          "goType": "map[string]string"
+        },
+        {
+          "key": "verificationJwksUrl",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "VerificationJwksUrl",
+          "goType": "string"
+        },
+        {
+          "key": "verificationJwksRefreshInterval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "VerificationJwksRefreshInterval",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "verificationJwksTlsInsecureSkipVerify",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "VerificationJwksTlsInsecureSkipVerify",
+          "goType": "bool",
+          "comment": "Skipping TLS verification is an explicit operator opt-in for the JWKS\nfetch, not a hardcoded bypass."
+        },
+        {
+          "key": "rateLimitBudgetClaimName",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "JwtStrategyConfig",
+          "goName": "RateLimitBudgetClaimName",
+          "goType": "string",
+          "comment": "RateLimitBudgetClaimName is the JWT claim name that, if present,\nwill be used to set the per-user RateLimitBudget override.\nDefaults to \"rlm\"."
+        }
+      ]
+    },
+    "MemoryConnectorConfig": {
+      "fields": [
+        {
+          "key": "maxItems",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "MemoryConnectorConfig",
+          "goName": "MaxItems",
+          "goType": "int"
+        },
+        {
+          "key": "maxTotalSize",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "MemoryConnectorConfig",
+          "goName": "MaxTotalSize",
+          "goType": "string"
+        },
+        {
+          "key": "emitMetrics",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "MemoryConnectorConfig",
+          "goName": "EmitMetrics",
+          "goType": "*bool"
+        }
+      ]
+    },
+    "MethodsConfig": {
+      "fields": [
+        {
+          "key": "preserveDefaultMethods",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "MethodsConfig",
+          "goName": "PreserveDefaultMethods",
+          "goType": "bool"
+        },
+        {
+          "key": "definitions",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "object",
+              "ref": "CacheMethodConfig"
+            }
+          },
+          "owner": "MethodsConfig",
+          "goName": "Definitions",
+          "goType": "map[string]*common.CacheMethodConfig"
+        }
+      ]
+    },
+    "MetricsConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "MetricsConfig",
+          "goName": "Enabled",
+          "goType": "*bool"
+        },
+        {
+          "key": "listenV4",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "MetricsConfig",
+          "goName": "ListenV4",
+          "goType": "*bool"
+        },
+        {
+          "key": "hostV4",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "MetricsConfig",
+          "goName": "HostV4",
+          "goType": "*string"
+        },
+        {
+          "key": "listenV6",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "MetricsConfig",
+          "goName": "ListenV6",
+          "goType": "*bool"
+        },
+        {
+          "key": "hostV6",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "MetricsConfig",
+          "goName": "HostV6",
+          "goType": "*string"
+        },
+        {
+          "key": "port",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "MetricsConfig",
+          "goName": "Port",
+          "goType": "*int"
+        },
+        {
+          "key": "errorLabelMode",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "MetricsConfig",
+          "goName": "ErrorLabelMode",
+          "goType": "common.LabelMode"
+        },
+        {
+          "key": "histogramBuckets",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "MetricsConfig",
+          "goName": "HistogramBuckets",
+          "goType": "string"
+        },
+        {
+          "key": "histogramDropLabels",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "MetricsConfig",
+          "goName": "HistogramDropLabels",
+          "goType": "[]string",
+          "comment": "HistogramDropLabels removes these labels from every histogram. Counters\nand gauges are unaffected. Useful to cap per-instance /metrics response\nsize when high-cardinality labels (e.g. \"user\") push a scrape past the\nmanaged scraper's sample/body limits."
+        },
+        {
+          "key": "histogramLabelOverrides",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "array",
+              "item": {
+                "kind": "string"
+              }
+            }
+          },
+          "owner": "MetricsConfig",
+          "goName": "HistogramLabelOverrides",
+          "goType": "map[string][]string",
+          "comment": "HistogramLabelOverrides re-adds labels for specific histograms even if\nthey appear in HistogramDropLabels. Key is the metric Name (without the\n\"erpc_\" namespace prefix), e.g. \"network_request_duration_seconds\".\nValue is the list of label names to keep for that metric."
+        },
+        {
+          "key": "counterDropLabels",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "MetricsConfig",
+          "goName": "CounterDropLabels",
+          "goType": "[]string",
+          "comment": "CounterDropLabels removes these labels from every counter that carries\ncaller-controlled dimensions (user, agent_name, attempt, composite,\nhedge, error). Histograms and gauges are unaffected; use\nHistogramDropLabels for the histogram side.\n\nCounters are usually the largest contributor to /metrics size, because a\nlabel like a client-supplied user-agent is unbounded and every tuple ever\nseen is re-emitted on every scrape. Dropping a label collapses the series\nthat differed only in it — sums stay correct, but the dimension stops\nbeing queryable, so check what consumes it (billing/attribution\npipelines, dashboards) before dropping."
+        },
+        {
+          "key": "counterLabelOverrides",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "array",
+              "item": {
+                "kind": "string"
+              }
+            }
+          },
+          "owner": "MetricsConfig",
+          "goName": "CounterLabelOverrides",
+          "goType": "map[string][]string",
+          "comment": "CounterLabelOverrides re-adds labels for specific counters even if they\nappear in CounterDropLabels. Key is the metric Name (without the \"erpc_\"\nnamespace prefix), e.g. \"upstream_request_total\". Value is the list of\nlabel names to keep for that metric. Use this to drop a label fleet-wide\nwhile preserving it on the one or two counters a downstream pipeline\nactually reads."
+        },
+        {
+          "key": "counterIdleEvictionAfter",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "MetricsConfig",
+          "goName": "CounterIdleEvictionAfter",
+          "goType": "*common.Duration",
+          "comment": "CounterIdleEvictionAfter bounds /metrics cardinality for hot-path\ncounters whose label-sets are keyed by caller-controlled inputs\n(method, user, agentName, ...). Counter series idle for at least this\nduration are evicted from the Prometheus registry (DeleteLabelValues)\nby the health tracker's idle sweep; a series that becomes active again\nrestarts at zero — the same semantics rate()/increase() consumers\nalready handle across process restarts. Defaults to 24h (conservative:\nonly clearly-dead label combinations are released). Set to 0 to\ndisable eviction entirely."
+        }
+      ]
+    },
+    "MisbehaviorsDestinationConfig": {
+      "fields": [
+        {
+          "key": "type",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "MisbehaviorsDestinationConfig",
+          "goName": "Type",
+          "goType": "common.MisbehaviorsDestinationType",
+          "comment": "Type of destination: \"file\" or \"s3\""
+        },
+        {
+          "key": "path",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "MisbehaviorsDestinationConfig",
+          "goName": "Path",
+          "goType": "string",
+          "comment": "Path for file destination, or S3 URI (s3://bucket/prefix/) for S3 destination"
+        },
+        {
+          "key": "filePattern",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "MisbehaviorsDestinationConfig",
+          "goName": "FilePattern",
+          "goType": "string",
+          "comment": "Pattern for generating file names. Supports placeholders:\n{dateByHour} - formatted as 2006-01-02-15\n{dateByDay} - formatted as 2006-01-02\n{method} - the RPC method name\n{networkId} - the network ID with : replaced by _\n{instanceId} - unique instance identifier"
+        },
+        {
+          "key": "s3",
+          "node": {
+            "kind": "object",
+            "ref": "S3FlushConfig"
+          },
+          "owner": "MisbehaviorsDestinationConfig",
+          "goName": "S3",
+          "goType": "*common.S3FlushConfig",
+          "comment": "S3-specific settings for bulk flushing"
+        }
+      ]
+    },
+    "NetworkConfig": {
+      "fields": [
+        {
+          "key": "architecture",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "NetworkConfig",
+          "goName": "Architecture",
+          "goType": "common.NetworkArchitecture"
+        },
+        {
+          "key": "rateLimitBudget",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "NetworkConfig",
+          "goName": "RateLimitBudget",
+          "goType": "string"
+        },
+        {
+          "key": "failsafe",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "FailsafeConfig"
+            }
+          },
+          "owner": "NetworkConfig",
+          "goName": "Failsafe",
+          "goType": "[]*common.FailsafeConfig"
+        },
+        {
+          "key": "evm",
+          "node": {
+            "kind": "object",
+            "ref": "EvmNetworkConfig"
+          },
+          "owner": "NetworkConfig",
+          "goName": "Evm",
+          "goType": "*common.EvmNetworkConfig"
+        },
+        {
+          "key": "svm",
+          "node": {
+            "kind": "object",
+            "ref": "SvmNetworkConfig"
+          },
+          "owner": "NetworkConfig",
+          "goName": "Svm",
+          "goType": "*common.SvmNetworkConfig"
+        },
+        {
+          "key": "selectionPolicy",
+          "node": {
+            "kind": "object",
+            "ref": "SelectionPolicyConfig"
+          },
+          "owner": "NetworkConfig",
+          "goName": "SelectionPolicy",
+          "goType": "*common.SelectionPolicyConfig"
+        },
+        {
+          "key": "directiveDefaults",
+          "node": {
+            "kind": "object",
+            "ref": "DirectiveDefaultsConfig"
+          },
+          "owner": "NetworkConfig",
+          "goName": "DirectiveDefaults",
+          "goType": "*common.DirectiveDefaultsConfig"
+        },
+        {
+          "key": "alias",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "NetworkConfig",
+          "goName": "Alias",
+          "goType": "string"
+        },
+        {
+          "key": "methods",
+          "node": {
+            "kind": "object",
+            "ref": "MethodsConfig"
+          },
+          "owner": "NetworkConfig",
+          "goName": "Methods",
+          "goType": "*common.MethodsConfig"
+        },
+        {
+          "key": "multiplexing",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "NetworkConfig",
+          "goName": "Multiplexing",
+          "goType": "*bool"
+        },
+        {
+          "key": "staticResponses",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "StaticResponseConfig"
+            }
+          },
+          "owner": "NetworkConfig",
+          "goName": "StaticResponses",
+          "goType": "[]*common.StaticResponseConfig"
+        },
+        {
+          "key": "integrity",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityConfig"
+          },
+          "owner": "NetworkConfig",
+          "goName": "Integrity",
+          "goType": "*common.IntegrityConfig",
+          "comment": "Integrity overrides the project-wide data-integrity configuration for this\nnetwork. Merges over the project block (network wins)."
+        }
+      ]
+    },
+    "NetworkDefaults": {
+      "fields": [
+        {
+          "key": "rateLimitBudget",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "NetworkDefaults",
+          "goName": "RateLimitBudget",
+          "goType": "string"
+        },
+        {
+          "key": "failsafe",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "FailsafeConfig"
+            }
+          },
+          "owner": "NetworkDefaults",
+          "goName": "Failsafe",
+          "goType": "[]*common.FailsafeConfig"
+        },
+        {
+          "key": "selectionPolicy",
+          "node": {
+            "kind": "object",
+            "ref": "SelectionPolicyConfig"
+          },
+          "owner": "NetworkDefaults",
+          "goName": "SelectionPolicy",
+          "goType": "*common.SelectionPolicyConfig"
+        },
+        {
+          "key": "directiveDefaults",
+          "node": {
+            "kind": "object",
+            "ref": "DirectiveDefaultsConfig"
+          },
+          "owner": "NetworkDefaults",
+          "goName": "DirectiveDefaults",
+          "goType": "*common.DirectiveDefaultsConfig"
+        },
+        {
+          "key": "evm",
+          "node": {
+            "kind": "object",
+            "ref": "EvmNetworkConfig"
+          },
+          "owner": "NetworkDefaults",
+          "goName": "Evm",
+          "goType": "*common.EvmNetworkConfig"
+        },
+        {
+          "key": "svm",
+          "node": {
+            "kind": "object",
+            "ref": "SvmNetworkConfig"
+          },
+          "owner": "NetworkDefaults",
+          "goName": "Svm",
+          "goType": "*common.SvmNetworkConfig"
+        },
+        {
+          "key": "multiplexing",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "NetworkDefaults",
+          "goName": "Multiplexing",
+          "goType": "*bool"
+        }
+      ]
+    },
+    "NetworkStrategyConfig": {
+      "fields": [
+        {
+          "key": "allowedIPs",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "NetworkStrategyConfig",
+          "goName": "AllowedIPs",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowedCIDRs",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "NetworkStrategyConfig",
+          "goName": "AllowedCIDRs",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowLocalhost",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "NetworkStrategyConfig",
+          "goName": "AllowLocalhost",
+          "goType": "bool"
+        },
+        {
+          "key": "trustedProxies",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "NetworkStrategyConfig",
+          "goName": "TrustedProxies",
+          "goType": "[]string"
+        },
+        {
+          "key": "rateLimitBudget",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "NetworkStrategyConfig",
+          "goName": "RateLimitBudget",
+          "goType": "string",
+          "comment": "RateLimitBudget, if set, is applied to the authenticated user (client IP)"
+        },
+        {
+          "key": "ipAsUser",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "NetworkStrategyConfig",
+          "goName": "IPAsUser",
+          "goType": "bool"
+        }
+      ]
+    },
+    "PostgreSQLConnectorConfig": {
+      "fields": [
+        {
+          "key": "connectionUri",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PostgreSQLConnectorConfig",
+          "goName": "ConnectionUri",
+          "goType": "string"
+        },
+        {
+          "key": "table",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PostgreSQLConnectorConfig",
+          "goName": "Table",
+          "goType": "string"
+        },
+        {
+          "key": "minConns",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "PostgreSQLConnectorConfig",
+          "goName": "MinConns",
+          "goType": "int32"
+        },
+        {
+          "key": "maxConns",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "PostgreSQLConnectorConfig",
+          "goName": "MaxConns",
+          "goType": "int32"
+        },
+        {
+          "key": "initTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PostgreSQLConnectorConfig",
+          "goName": "InitTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "getTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PostgreSQLConnectorConfig",
+          "goName": "GetTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "setTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PostgreSQLConnectorConfig",
+          "goName": "SetTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "iamAuth",
+          "node": {
+            "kind": "object",
+            "ref": "PostgreSQLIAMAuthConfig"
+          },
+          "owner": "PostgreSQLConnectorConfig",
+          "goName": "IAMAuth",
+          "goType": "*common.PostgreSQLIAMAuthConfig"
+        },
+        {
+          "key": "skipSchemaSetup",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "PostgreSQLConnectorConfig",
+          "goName": "SkipSchemaSetup",
+          "goType": "bool",
+          "comment": "SkipSchemaSetup skips all startup DDL (CREATE TABLE/INDEX, column\nmigrations, pg_cron) and the local expired-row cleanup DELETE loop. Set\nit for connectors whose ConnectionUri targets a read-only replica (e.g.\nan Aurora global-database secondary): DDL cannot execute there (SQLSTATE\n25006) and is not write-forwarded, so the writer-region connector owns\nthe schema and the replica receives it via storage replication."
+        }
+      ]
+    },
+    "PostgreSQLIAMAuthConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "PostgreSQLIAMAuthConfig",
+          "goName": "Enabled",
+          "goType": "bool"
+        },
+        {
+          "key": "endpoint",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PostgreSQLIAMAuthConfig",
+          "goName": "Endpoint",
+          "goType": "string",
+          "comment": "Endpoint is host:port of the RDS instance. If empty, derived from\nConnectionUri at SetDefaults time."
+        },
+        {
+          "key": "region",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PostgreSQLIAMAuthConfig",
+          "goName": "Region",
+          "goType": "string",
+          "comment": "Region is optional — derived from AWS_REGION / instance metadata when omitted."
+        },
+        {
+          "key": "dbUser",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PostgreSQLIAMAuthConfig",
+          "goName": "DBUser",
+          "goType": "string",
+          "comment": "DBUser is the database user mapped to the IAM role (must be granted rds_iam\nin PostgreSQL). If empty, derived from the user in ConnectionUri."
+        },
+        {
+          "key": "auth",
+          "node": {
+            "kind": "object",
+            "ref": "AwsAuthConfig"
+          },
+          "owner": "PostgreSQLIAMAuthConfig",
+          "goName": "Auth",
+          "goType": "*common.AwsAuthConfig"
+        }
+      ]
+    },
+    "ProjectConfig": {
+      "fields": [
+        {
+          "key": "id",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ProjectConfig",
+          "goName": "Id",
+          "goType": "string"
+        },
+        {
+          "key": "auth",
+          "node": {
+            "kind": "object",
+            "ref": "AuthConfig"
+          },
+          "owner": "ProjectConfig",
+          "goName": "Auth",
+          "goType": "*common.AuthConfig"
+        },
+        {
+          "key": "cors",
+          "node": {
+            "kind": "object",
+            "ref": "CORSConfig"
+          },
+          "owner": "ProjectConfig",
+          "goName": "CORS",
+          "goType": "*common.CORSConfig"
+        },
+        {
+          "key": "providers",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "ProviderConfig"
+            }
+          },
+          "owner": "ProjectConfig",
+          "goName": "Providers",
+          "goType": "[]*common.ProviderConfig"
+        },
+        {
+          "key": "upstreamDefaults",
+          "node": {
+            "kind": "object",
+            "ref": "UpstreamConfig"
+          },
+          "owner": "ProjectConfig",
+          "goName": "UpstreamDefaults",
+          "goType": "*common.UpstreamConfig"
+        },
+        {
+          "key": "upstreams",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "UpstreamConfig"
+            }
+          },
+          "owner": "ProjectConfig",
+          "goName": "Upstreams",
+          "goType": "[]*common.UpstreamConfig"
+        },
+        {
+          "key": "networkDefaults",
+          "node": {
+            "kind": "object",
+            "ref": "NetworkDefaults"
+          },
+          "owner": "ProjectConfig",
+          "goName": "NetworkDefaults",
+          "goType": "*common.NetworkDefaults"
+        },
+        {
+          "key": "networks",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "NetworkConfig"
+            }
+          },
+          "owner": "ProjectConfig",
+          "goName": "Networks",
+          "goType": "[]*common.NetworkConfig"
+        },
+        {
+          "key": "rateLimitBudget",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ProjectConfig",
+          "goName": "RateLimitBudget",
+          "goType": "string"
+        },
+        {
+          "key": "userAgentMode",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ProjectConfig",
+          "goName": "UserAgentMode",
+          "goType": "common.UserAgentTrackingMode",
+          "comment": "Configure user agent tracking at the project level"
+        },
+        {
+          "key": "trustUserIdHeader",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ProjectConfig",
+          "goName": "TrustUserIdHeader",
+          "goType": "bool",
+          "comment": "TrustUserIdHeader makes erpc read the caller's user identity from the\nX-ERPC-User-Id request header (see common.HeaderUserId) and use it for the\n`user` metric/log label — but only when no auth strategy resolved a user\n(auth wins) and only for attribution (no rate-limit budget is derived).\nThis is for deployments that authenticate callers in front of erpc (e.g. a\ngateway) and want per-user erpc telemetry without erpc performing auth.\nerpc does NOT validate the header, so enable this ONLY when erpc is reachable\nsolely by a trusted proxy that sets the header and strips any client copy —\notherwise callers can spoof their own attribution. Default false."
+        },
+        {
+          "key": "forwardHeaders",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "ProjectConfig",
+          "goName": "ForwardHeaders",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowClientDirectives",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ProjectConfig",
+          "goName": "AllowClientDirectives",
+          "goType": "*string"
+        },
+        {
+          "key": "ignoreMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "ProjectConfig",
+          "goName": "IgnoreMethods",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "ProjectConfig",
+          "goName": "AllowMethods",
+          "goType": "[]string"
+        },
+        {
+          "key": "integrity",
+          "node": {
+            "kind": "object",
+            "ref": "IntegrityConfig"
+          },
+          "owner": "ProjectConfig",
+          "goName": "Integrity",
+          "goType": "*common.IntegrityConfig",
+          "comment": "Integrity is the project-wide data-integrity configuration. It applies to\nall networks; each network may override it with its own integrity block."
+        },
+        {
+          "key": "scoreMetricsWindowSize",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ProjectConfig",
+          "goName": "ScoreMetricsWindowSize",
+          "goType": "common.Duration",
+          "comment": "ScoreMetricsWindowSize is the tumbling window the per-upstream\nhealth tracker uses for its rolling counters (errorRate, p50/p70/\np95 latency, throttledRate, misbehaviorRate). At each tick the\ncounters reset and start re-accumulating, so this knob effectively\ncontrols how fast a degraded upstream's metrics start reflecting\nthe new reality. Short windows (e.g. 30s) react quickly but give\nnoisier ranking; long windows (5–10m) give stable averages but\nhide spikes for longer. Defaults to 10m when zero — production\nsystems typically leave it default; the eRPC simulator overrides\nto 30s so knob changes show up in the UI within seconds."
+        }
+      ]
+    },
+    "ProviderConfig": {
+      "fields": [
+        {
+          "key": "id",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ProviderConfig",
+          "goName": "Id",
+          "goType": "string"
+        },
+        {
+          "key": "vendor",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ProviderConfig",
+          "goName": "Vendor",
+          "goType": "string"
+        },
+        {
+          "key": "settings",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "any"
+            }
+          },
+          "owner": "ProviderConfig",
+          "goName": "Settings",
+          "goType": "common.VendorSettings"
+        },
+        {
+          "key": "onlyNetworks",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "ProviderConfig",
+          "goName": "OnlyNetworks",
+          "goType": "[]string"
+        },
+        {
+          "key": "ignoreNetworks",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "ProviderConfig",
+          "goName": "IgnoreNetworks",
+          "goType": "[]string"
+        },
+        {
+          "key": "upstreamIdTemplate",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ProviderConfig",
+          "goName": "UpstreamIdTemplate",
+          "goType": "string"
+        },
+        {
+          "key": "overrides",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "object",
+              "ref": "UpstreamConfig"
+            }
+          },
+          "owner": "ProviderConfig",
+          "goName": "Overrides",
+          "goType": "map[string]*common.UpstreamConfig"
+        }
+      ]
+    },
+    "ProxyPoolConfig": {
+      "fields": [
+        {
+          "key": "id",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ProxyPoolConfig",
+          "goName": "ID",
+          "goType": "string"
+        },
+        {
+          "key": "urls",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "ProxyPoolConfig",
+          "goName": "Urls",
+          "goType": "[]string"
+        }
+      ]
+    },
+    "PunishMisbehaviorConfig": {
+      "fields": [
+        {
+          "key": "disputeThreshold",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "PunishMisbehaviorConfig",
+          "goName": "DisputeThreshold",
+          "goType": "uint"
+        },
+        {
+          "key": "disputeWindow",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PunishMisbehaviorConfig",
+          "goName": "DisputeWindow",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "sitOutPenalty",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "PunishMisbehaviorConfig",
+          "goName": "SitOutPenalty",
+          "goType": "common.Duration"
+        }
+      ]
+    },
+    "RateLimitAutoTuneConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "RateLimitAutoTuneConfig",
+          "goName": "Enabled",
+          "goType": "*bool"
+        },
+        {
+          "key": "adjustmentPeriod",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RateLimitAutoTuneConfig",
+          "goName": "AdjustmentPeriod",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "errorRateThreshold",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RateLimitAutoTuneConfig",
+          "goName": "ErrorRateThreshold",
+          "goType": "float64"
+        },
+        {
+          "key": "increaseFactor",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RateLimitAutoTuneConfig",
+          "goName": "IncreaseFactor",
+          "goType": "float64"
+        },
+        {
+          "key": "decreaseFactor",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RateLimitAutoTuneConfig",
+          "goName": "DecreaseFactor",
+          "goType": "float64"
+        },
+        {
+          "key": "minBudget",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RateLimitAutoTuneConfig",
+          "goName": "MinBudget",
+          "goType": "int"
+        },
+        {
+          "key": "maxBudget",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RateLimitAutoTuneConfig",
+          "goName": "MaxBudget",
+          "goType": "int"
+        }
+      ]
+    },
+    "RateLimitBudgetConfig": {
+      "fields": [
+        {
+          "key": "id",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RateLimitBudgetConfig",
+          "goName": "Id",
+          "goType": "string"
+        },
+        {
+          "key": "rules",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "RateLimitRuleConfig"
+            }
+          },
+          "owner": "RateLimitBudgetConfig",
+          "goName": "Rules",
+          "goType": "[]*common.RateLimitRuleConfig"
+        }
+      ]
+    },
+    "RateLimitRuleConfig": {
+      "fields": [
+        {
+          "key": "method",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RateLimitRuleConfig",
+          "goName": "Method",
+          "goType": "string"
+        },
+        {
+          "key": "maxCount",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RateLimitRuleConfig",
+          "goName": "MaxCount",
+          "goType": "uint32"
+        },
+        {
+          "key": "period",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RateLimitRuleConfig",
+          "goName": "Period",
+          "goType": "common.RateLimitPeriod",
+          "comment": "Period is the canonical period selector. Supported: second, minute, hour, day, week, month, year"
+        },
+        {
+          "key": "waitTime",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RateLimitRuleConfig",
+          "goName": "WaitTime",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "perIP",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "RateLimitRuleConfig",
+          "goName": "PerIP",
+          "goType": "bool"
+        },
+        {
+          "key": "perUser",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "RateLimitRuleConfig",
+          "goName": "PerUser",
+          "goType": "bool"
+        },
+        {
+          "key": "perNetwork",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "RateLimitRuleConfig",
+          "goName": "PerNetwork",
+          "goType": "bool"
+        }
+      ]
+    },
+    "RateLimitStoreConfig": {
+      "fields": [
+        {
+          "key": "driver",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RateLimitStoreConfig",
+          "goName": "Driver",
+          "goType": "string",
+          "comment": "\"redis\" | \"memory\""
+        },
+        {
+          "key": "redis",
+          "node": {
+            "kind": "object",
+            "ref": "RedisConnectorConfig"
+          },
+          "owner": "RateLimitStoreConfig",
+          "goName": "Redis",
+          "goType": "*common.RedisConnectorConfig"
+        },
+        {
+          "key": "cacheKeyPrefix",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RateLimitStoreConfig",
+          "goName": "CacheKeyPrefix",
+          "goType": "string"
+        },
+        {
+          "key": "nearLimitRatio",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RateLimitStoreConfig",
+          "goName": "NearLimitRatio",
+          "goType": "float32"
+        }
+      ]
+    },
+    "RateLimiterConfig": {
+      "fields": [
+        {
+          "key": "store",
+          "node": {
+            "kind": "object",
+            "ref": "RateLimitStoreConfig"
+          },
+          "owner": "RateLimiterConfig",
+          "goName": "Store",
+          "goType": "*common.RateLimitStoreConfig"
+        },
+        {
+          "key": "budgets",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "RateLimitBudgetConfig"
+            }
+          },
+          "owner": "RateLimiterConfig",
+          "goName": "Budgets",
+          "goType": "[]*common.RateLimitBudgetConfig"
+        }
+      ]
+    },
+    "RedisConnectorConfig": {
+      "fields": [
+        {
+          "key": "addr",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "Addr",
+          "goType": "string"
+        },
+        {
+          "key": "username",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "Username",
+          "goType": "string"
+        },
+        {
+          "key": "password",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "Password",
+          "goType": "string"
+        },
+        {
+          "key": "db",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "DB",
+          "goType": "int"
+        },
+        {
+          "key": "tls",
+          "node": {
+            "kind": "object",
+            "ref": "TLSConfig"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "TLS",
+          "goType": "*common.TLSConfig"
+        },
+        {
+          "key": "connPoolSize",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "ConnPoolSize",
+          "goType": "int"
+        },
+        {
+          "key": "uri",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "URI",
+          "goType": "string"
+        },
+        {
+          "key": "initTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "InitTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "getTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "GetTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "setTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "SetTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "lockRetryInterval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "LockRetryInterval",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "iamAuth",
+          "node": {
+            "kind": "object",
+            "ref": "RedisIAMAuthConfig"
+          },
+          "owner": "RedisConnectorConfig",
+          "goName": "IAMAuth",
+          "goType": "*common.RedisIAMAuthConfig"
+        }
+      ]
+    },
+    "RedisIAMAuthConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "RedisIAMAuthConfig",
+          "goName": "Enabled",
+          "goType": "bool"
+        },
+        {
+          "key": "cacheName",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisIAMAuthConfig",
+          "goName": "CacheName",
+          "goType": "string",
+          "comment": "CacheName is the ElastiCache replication-group ID.\nWill be lowercased automatically (AWS lowercases cache names at creation time)."
+        },
+        {
+          "key": "region",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisIAMAuthConfig",
+          "goName": "Region",
+          "goType": "string",
+          "comment": "Region is optional — derived from AWS_REGION / instance metadata when omitted."
+        },
+        {
+          "key": "userID",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RedisIAMAuthConfig",
+          "goName": "UserID",
+          "goType": "string"
+        },
+        {
+          "key": "auth",
+          "node": {
+            "kind": "object",
+            "ref": "AwsAuthConfig"
+          },
+          "owner": "RedisIAMAuthConfig",
+          "goName": "Auth",
+          "goType": "*common.AwsAuthConfig",
+          "comment": "Auth selects the AWS credential source (same shape as DynamoDB's auth).\nOmit to use the default credential chain (instance role, env vars, …)."
+        }
+      ]
+    },
+    "RetryPolicyConfig": {
+      "fields": [
+        {
+          "key": "maxAttempts",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "MaxAttempts",
+          "goType": "int"
+        },
+        {
+          "key": "delay",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "Delay",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "backoffMaxDelay",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "BackoffMaxDelay",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "backoffFactor",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "BackoffFactor",
+          "goType": "float32"
+        },
+        {
+          "key": "jitter",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "Jitter",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "emptyResultAccept",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "EmptyResultAccept",
+          "goType": "[]string",
+          "comment": "EmptyResultAccept lists methods for which an empty/null result is considered valid\nand should NOT be retried (e.g. eth_getLogs, eth_call where empty is a legitimate response)."
+        },
+        {
+          "key": "emptyResultIgnore",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "EmptyResultIgnore",
+          "goType": "[]string",
+          "comment": "@deprecated: use EmptyResultAccept instead.",
+          "deprecated": true
+        },
+        {
+          "key": "emptyResultMaxAttempts",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "EmptyResultMaxAttempts",
+          "goType": "int",
+          "comment": "EmptyResultMaxAttempts limits total attempts when retries are triggered due to empty responses."
+        },
+        {
+          "key": "emptyResultDelay",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "EmptyResultDelay",
+          "goType": "common.Duration",
+          "comment": "EmptyResultDelay is the fixed fallback delay before retrying when the requested\ndata isn't on the upstream yet — an empty/missing-data point-lookup OR an\nErrUpstreamBlockUnavailable (same root cause: the block/tx isn't produced or\nindexed yet). Retries prefer the dynamic block-time delay (EMA block time ×\nEvm.BlockUnavailableDelayMultiplier); this fixed value is used only before that\nestimate warms up. (Supersedes the now-deprecated BlockUnavailableDelay.)"
+        },
+        {
+          "key": "blockUnavailableDelay",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "RetryPolicyConfig",
+          "goName": "BlockUnavailableDelay",
+          "goType": "common.Duration",
+          "comment": "Deprecated: merged into EmptyResultDelay (same purpose — fixed fallback delay for\ndata-not-available retries). Retained as a yaml-only key so existing configs that\nstill set `blockUnavailableDelay` keep loading; RetryPolicyConfig.SetDefaults\nmigrates the value into EmptyResultDelay and clears this. Not read anywhere at\nruntime, and hidden from the generated TS types (json:\"-\") so new configs use\nemptyResultDelay.",
+          "deprecated": true
+        }
+      ]
+    },
+    "S3FlushConfig": {
+      "fields": [
+        {
+          "key": "maxRecords",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "S3FlushConfig",
+          "goName": "MaxRecords",
+          "goType": "int",
+          "comment": "Maximum number of records to buffer before flushing (default: 100)"
+        },
+        {
+          "key": "maxSize",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "S3FlushConfig",
+          "goName": "MaxSize",
+          "goType": "int64",
+          "comment": "Maximum size in bytes to buffer before flushing (default: 1MB)"
+        },
+        {
+          "key": "flushInterval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "S3FlushConfig",
+          "goName": "FlushInterval",
+          "goType": "common.Duration",
+          "comment": "Maximum time to wait before flushing buffered records (default: 60s)"
+        },
+        {
+          "key": "region",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "S3FlushConfig",
+          "goName": "Region",
+          "goType": "string",
+          "comment": "AWS region for S3 bucket (defaults to AWS_REGION env var)"
+        },
+        {
+          "key": "endpoint",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "S3FlushConfig",
+          "goName": "Endpoint",
+          "goType": "string",
+          "comment": "Custom S3 endpoint URL for S3-compatible providers (Tigris, MinIO, R2, …).\nEmpty = real AWS S3. When set, path-style addressing is used."
+        },
+        {
+          "key": "credentials",
+          "node": {
+            "kind": "object",
+            "ref": "AwsAuthConfig"
+          },
+          "owner": "S3FlushConfig",
+          "goName": "Credentials",
+          "goType": "*common.AwsAuthConfig",
+          "comment": "AWS credentials config (optional). If not specified, uses standard AWS credential chain:\n1. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)\n2. IAM role (for EC2/ECS/EKS)\n3. Shared credentials file (~/.aws/credentials)\nSupported modes: \"env\", \"file\", \"secret\""
+        },
+        {
+          "key": "contentType",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "S3FlushConfig",
+          "goName": "ContentType",
+          "goType": "string",
+          "comment": "Content type for uploaded files (default: \"application/jsonl\")"
+        }
+      ]
+    },
+    "ScoreMultiplierConfig": {
+      "fields": [
+        {
+          "key": "network",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "Network",
+          "goType": "string"
+        },
+        {
+          "key": "method",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "Method",
+          "goType": "string"
+        },
+        {
+          "key": "finality",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "number"
+            }
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "Finality",
+          "goType": "[]common.DataFinalityState"
+        },
+        {
+          "key": "overall",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "Overall",
+          "goType": "*float64"
+        },
+        {
+          "key": "errorRate",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "ErrorRate",
+          "goType": "*float64"
+        },
+        {
+          "key": "respLatency",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "RespLatency",
+          "goType": "*float64"
+        },
+        {
+          "key": "throttledRate",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "ThrottledRate",
+          "goType": "*float64"
+        },
+        {
+          "key": "blockHeadLag",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "BlockHeadLag",
+          "goType": "*float64"
+        },
+        {
+          "key": "finalizationLag",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "FinalizationLag",
+          "goType": "*float64"
+        },
+        {
+          "key": "misbehaviors",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "Misbehaviors",
+          "goType": "*float64"
+        },
+        {
+          "key": "totalRequests",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ScoreMultiplierConfig",
+          "goName": "TotalRequests",
+          "goType": "*float64",
+          "comment": "TotalRequests is accepted for backward compatibility but no longer\ninfluences scoring (the score is computed from rolling-window rates,\nnot absolute request counts)."
+        }
+      ]
+    },
+    "SecretStrategyConfig": {
+      "fields": [
+        {
+          "key": "id",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SecretStrategyConfig",
+          "goName": "Id",
+          "goType": "string"
+        },
+        {
+          "key": "value",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SecretStrategyConfig",
+          "goName": "Value",
+          "goType": "string"
+        },
+        {
+          "key": "rateLimitBudget",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SecretStrategyConfig",
+          "goName": "RateLimitBudget",
+          "goType": "string",
+          "comment": "RateLimitBudget, if set, is applied to the authenticated user from this strategy"
+        }
+      ]
+    },
+    "SelectionPolicyConfig": {
+      "fields": [
+        {
+          "key": "evalInterval",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SelectionPolicyConfig",
+          "goName": "EvalInterval",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "evalScope",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SelectionPolicyConfig",
+          "goName": "EvalScope",
+          "goType": "common.EvalScope",
+          "comment": "EvalScope picks the slot grain — and the matching tracker grain\n(see `EvalScope` doc). Default `network` (one slot per network).\nTighter scopes let predicates like `errorRateAbove(0.5)` see\ngenuinely (method, finality)-specific health."
+        },
+        {
+          "key": "evalPerMethod",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "SelectionPolicyConfig",
+          "goName": "EvalPerMethod",
+          "goType": "*bool",
+          "comment": "EvalPerMethod is a config-load-time alias that translates to\nEvalScope. Pointer-typed so SetDefaults can distinguish \"key\nabsent\" (nil) from \"key explicitly false\". Niled out after\ntranslation — the engine + downstream code only ever consult\nEvalScope. Kept out of the public TS surface (`tstype:\"-\"`); the\ncanonical knob is `evalScope`."
+        },
+        {
+          "key": "evalPerFinality",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "SelectionPolicyConfig",
+          "goName": "EvalPerFinality",
+          "goType": "*bool",
+          "comment": "EvalPerFinality — same shape and translation behavior as\nEvalPerMethod, for the finality axis."
+        },
+        {
+          "key": "evalPerBoundary",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "SelectionPolicyConfig",
+          "goName": "EvalPerBoundary",
+          "goType": "*bool",
+          "comment": "EvalPerBoundary scopes selection-policy evaluation by block-availability\n\"lane\" — the set of upstreams whose configured block range can actually\nserve the request's block. Unlike EvalPerMethod / EvalPerFinality this is\ndeliberately NOT folded into EvalScope: it must not change the\nhealth-tracker grain (boundary is a decision/pool axis, not a metrics\naxis), so the engine reads it directly as an orthogonal slot dimension.\nWhen on, a request whose block excludes some upstream is evaluated\nagainst a lane-scoped pool — an upstream that cannot serve the range is\nabsent from the pool (a capability fact), distinct from the policy's\nsoft health-based deprioritization. Default off. Pointer-typed so a\nfuture SetDefaults can distinguish \"absent\" from \"explicitly false\"."
+        },
+        {
+          "key": "evalTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SelectionPolicyConfig",
+          "goName": "EvalTimeout",
+          "goType": "common.Duration"
+        },
+        {
+          "key": "evalFunc",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SelectionPolicyConfig",
+          "goName": "EvalFunc",
+          "goType": "string",
+          "comment": "EvalFunc is the per-tick evaluation function. In YAML it's a JS\nsource string; in TS configs it's a real arrow function compiled\ninto `CompiledProgram` at config load.\nSignature: `(upstreams, ctx) =\u003e Upstream[]`.\nSee specs/selection-policy/feature.md for the stdlib reference."
+        }
+      ]
+    },
+    "ServerConfig": {
+      "fields": [
+        {
+          "key": "listenV4",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ServerConfig",
+          "goName": "ListenV4",
+          "goType": "*bool"
+        },
+        {
+          "key": "httpHostV4",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "HttpHostV4",
+          "goType": "*string"
+        },
+        {
+          "key": "listenV6",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ServerConfig",
+          "goName": "ListenV6",
+          "goType": "*bool"
+        },
+        {
+          "key": "httpHostV6",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "HttpHostV6",
+          "goType": "*string"
+        },
+        {
+          "key": "httpPort",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ServerConfig",
+          "goName": "HttpPort",
+          "goType": "*int",
+          "comment": "Deprecated: use HttpPortV4",
+          "deprecated": true
+        },
+        {
+          "key": "httpPortV4",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ServerConfig",
+          "goName": "HttpPortV4",
+          "goType": "*int"
+        },
+        {
+          "key": "httpPortV6",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ServerConfig",
+          "goName": "HttpPortV6",
+          "goType": "*int"
+        },
+        {
+          "key": "grpcEnabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ServerConfig",
+          "goName": "GrpcEnabled",
+          "goType": "*bool"
+        },
+        {
+          "key": "grpcHostV4",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "GrpcHostV4",
+          "goType": "*string"
+        },
+        {
+          "key": "grpcPortV4",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ServerConfig",
+          "goName": "GrpcPortV4",
+          "goType": "*int"
+        },
+        {
+          "key": "grpcHostV6",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "GrpcHostV6",
+          "goType": "*string"
+        },
+        {
+          "key": "grpcPortV6",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ServerConfig",
+          "goName": "GrpcPortV6",
+          "goType": "*int"
+        },
+        {
+          "key": "grpcMaxRecvMsgSize",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ServerConfig",
+          "goName": "GrpcMaxRecvMsgSize",
+          "goType": "*int"
+        },
+        {
+          "key": "grpcMaxSendMsgSize",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ServerConfig",
+          "goName": "GrpcMaxSendMsgSize",
+          "goType": "*int"
+        },
+        {
+          "key": "grpcReflection",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ServerConfig",
+          "goName": "GrpcReflection",
+          "goType": "*bool"
+        },
+        {
+          "key": "maxTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "MaxTimeout",
+          "goType": "*common.Duration"
+        },
+        {
+          "key": "readTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "ReadTimeout",
+          "goType": "*common.Duration"
+        },
+        {
+          "key": "writeTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "WriteTimeout",
+          "goType": "*common.Duration"
+        },
+        {
+          "key": "enableGzip",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ServerConfig",
+          "goName": "EnableGzip",
+          "goType": "*bool"
+        },
+        {
+          "key": "tls",
+          "node": {
+            "kind": "object",
+            "ref": "TLSConfig"
+          },
+          "owner": "ServerConfig",
+          "goName": "TLS",
+          "goType": "*common.TLSConfig"
+        },
+        {
+          "key": "aliasing",
+          "node": {
+            "kind": "object",
+            "ref": "AliasingConfig"
+          },
+          "owner": "ServerConfig",
+          "goName": "Aliasing",
+          "goType": "*common.AliasingConfig"
+        },
+        {
+          "key": "waitBeforeShutdown",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "WaitBeforeShutdown",
+          "goType": "*common.Duration"
+        },
+        {
+          "key": "waitAfterShutdown",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "WaitAfterShutdown",
+          "goType": "*common.Duration"
+        },
+        {
+          "key": "includeErrorDetails",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ServerConfig",
+          "goName": "IncludeErrorDetails",
+          "goType": "*bool"
+        },
+        {
+          "key": "trustedIPForwarders",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "ServerConfig",
+          "goName": "TrustedIPForwarders",
+          "goType": "[]string"
+        },
+        {
+          "key": "trustedIPHeaders",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "ServerConfig",
+          "goName": "TrustedIPHeaders",
+          "goType": "[]string"
+        },
+        {
+          "key": "responseHeaders",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "string"
+            }
+          },
+          "owner": "ServerConfig",
+          "goName": "ResponseHeaders",
+          "goType": "map[string]string"
+        },
+        {
+          "key": "executionHeaders",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "ServerConfig",
+          "goName": "ExecutionHeaders",
+          "goType": "*common.ExecutionHeadersMode",
+          "comment": "ExecutionHeaders controls the per-request diagnostic headers\n(X-ERPC-Attempts, X-ERPC-Upstreams-Tried, etc.) that expose how\neRPC routed and resolved each request. Defaults to \"all\" — set\n\"summary\" to keep only counters, or \"off\" to disable entirely\n(useful for low-latency / bandwidth-constrained clients)."
+        },
+        {
+          "key": "costHeaders",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ServerConfig",
+          "goName": "CostHeaders",
+          "goType": "*bool",
+          "comment": "CostHeaders opts into the cost/billing response headers\n(X-ERPC-Calls, X-ERPC-Billable, X-ERPC-Methods, X-ERPC-Credits,\nX-ERPC-Credits-Version) on single and batch responses. Off by\ndefault. Credit-unit pricing is vendor-level configuration — see\nCreditUnitsProvider and UpstreamConfig.CreditUnits."
+        }
+      ]
+    },
+    "ShadowUpstreamConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ShadowUpstreamConfig",
+          "goName": "Enabled",
+          "goType": "bool"
+        },
+        {
+          "key": "sampleRate",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "ShadowUpstreamConfig",
+          "goName": "SampleRate",
+          "goType": "*float64"
+        },
+        {
+          "key": "ignoreFields",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "array",
+              "item": {
+                "kind": "string"
+              }
+            }
+          },
+          "owner": "ShadowUpstreamConfig",
+          "goName": "IgnoreFields",
+          "goType": "map[string][]string"
+        },
+        {
+          "key": "pinBlockTag",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "ShadowUpstreamConfig",
+          "goName": "PinBlockTag",
+          "goType": "bool",
+          "comment": "PinBlockTag rewrites a tag block selector (\"latest\"/\"pending\") in the mirrored copy to a\nconcrete height before forwarding: the primary's resolved block number when its response\ncarries one, else the network's tracked head at mirror time. Without it the shadow executes\nthe tag at its OWN head wall-clock-later than the primary did, so any read of volatile state\n(pool reserves, oracle prices — most visibly large multicalls) diverges by construction and\nreports a mismatch that says nothing about correctness. Default false = mirror byte-identical\nrequests, exactly as before."
+        }
+      ]
+    },
+    "SharedStateConfig": {
+      "fields": [
+        {
+          "key": "clusterKey",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SharedStateConfig",
+          "goName": "ClusterKey",
+          "goType": "string",
+          "comment": "ClusterKey identifies the logical group for shared counters across replicas (multi-tenant friendly)"
+        },
+        {
+          "key": "connector",
+          "node": {
+            "kind": "object",
+            "ref": "ConnectorConfig"
+          },
+          "owner": "SharedStateConfig",
+          "goName": "Connector",
+          "goType": "*common.ConnectorConfig",
+          "comment": "Connector contains the storage driver configuration (redis, postgresql, dynamodb, memory)"
+        },
+        {
+          "key": "fallbackTimeout",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SharedStateConfig",
+          "goName": "FallbackTimeout",
+          "goType": "common.Duration",
+          "comment": "FallbackTimeout is the timeout for remote storage operations (get/set/publish).\nIt is a seconds-scale network timeout and NOT a foreground latency budget."
+        },
+        {
+          "key": "lockTtl",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SharedStateConfig",
+          "goName": "LockTtl",
+          "goType": "common.Duration",
+          "comment": "LockTtl is the expiration for the distributed lock key in the backing store.\nShould comfortably exceed the expected duration of remote writes."
+        },
+        {
+          "key": "lockMaxWait",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SharedStateConfig",
+          "goName": "LockMaxWait",
+          "goType": "common.Duration",
+          "comment": "LockMaxWait caps how long the foreground path will wait to acquire the lock\nbefore proceeding locally and deferring the remote write to background."
+        },
+        {
+          "key": "updateMaxWait",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SharedStateConfig",
+          "goName": "UpdateMaxWait",
+          "goType": "common.Duration",
+          "comment": "UpdateMaxWait caps how long the foreground path will spend computing a new value\n(e.g., polling latest block) before returning the current local value."
+        }
+      ]
+    },
+    "SiweStrategyConfig": {
+      "fields": [
+        {
+          "key": "allowedDomains",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "SiweStrategyConfig",
+          "goName": "AllowedDomains",
+          "goType": "[]string"
+        },
+        {
+          "key": "rateLimitBudget",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SiweStrategyConfig",
+          "goName": "RateLimitBudget",
+          "goType": "string",
+          "comment": "RateLimitBudget, if set, is applied to the authenticated user"
+        }
+      ]
+    },
+    "StaticResponseBodyConfig": {
+      "fields": [
+        {
+          "key": "result",
+          "node": {
+            "kind": "any"
+          },
+          "owner": "StaticResponseBodyConfig",
+          "goName": "Result",
+          "goType": "interface {}"
+        },
+        {
+          "key": "error",
+          "node": {
+            "kind": "object",
+            "ref": "StaticResponseErrorConfig"
+          },
+          "owner": "StaticResponseBodyConfig",
+          "goName": "Error",
+          "goType": "*common.StaticResponseErrorConfig"
+        }
+      ]
+    },
+    "StaticResponseConfig": {
+      "fields": [
+        {
+          "key": "method",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "StaticResponseConfig",
+          "goName": "Method",
+          "goType": "string"
+        },
+        {
+          "key": "params",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "any"
+            }
+          },
+          "owner": "StaticResponseConfig",
+          "goName": "Params",
+          "goType": "[]interface {}"
+        },
+        {
+          "key": "response",
+          "node": {
+            "kind": "object",
+            "ref": "StaticResponseBodyConfig"
+          },
+          "owner": "StaticResponseConfig",
+          "goName": "Response",
+          "goType": "*common.StaticResponseBodyConfig"
+        }
+      ]
+    },
+    "StaticResponseErrorConfig": {
+      "fields": [
+        {
+          "key": "code",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "StaticResponseErrorConfig",
+          "goName": "Code",
+          "goType": "int"
+        },
+        {
+          "key": "message",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "StaticResponseErrorConfig",
+          "goName": "Message",
+          "goType": "string"
+        },
+        {
+          "key": "data",
+          "node": {
+            "kind": "any"
+          },
+          "owner": "StaticResponseErrorConfig",
+          "goName": "Data",
+          "goType": "interface {}"
+        }
+      ]
+    },
+    "SvmNetworkConfig": {
+      "fields": [
+        {
+          "key": "chain",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SvmNetworkConfig",
+          "goName": "Chain",
+          "goType": "string",
+          "comment": "Chain identifies which SVM chain this network runs on. Defaults to \"solana\"\nwhen empty for backward compatibility. Set explicitly for forks/variants\nsuch as \"fogo\" or \"eclipse\" so eRPC can host multiple SVM chains side by\nside without network-ID or cache-key collisions.\n\nWhen Chain is empty or \"solana\", the derived NetworkId is \"svm:\u003ccluster\u003e\"\n— identical to the pre-multi-chain format. For any other Chain value the\nNetworkId is \"svm:\u003cchain\u003e:\u003ccluster\u003e\"."
+        },
+        {
+          "key": "cluster",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SvmNetworkConfig",
+          "goName": "Cluster",
+          "goType": "string",
+          "comment": "Cluster the upstreams of this network serve (e.g. \"mainnet-beta\", \"devnet\").\nThe NetworkId is derived from this value together with Chain — see the\nChain field above for the exact format."
+        },
+        {
+          "key": "commitment",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SvmNetworkConfig",
+          "goName": "Commitment",
+          "goType": "string",
+          "comment": "Commitment is the default commitment level injected into requests whose params\nomit one. One of \"finalized\", \"confirmed\", \"processed\". No default: when unset,\nno commitment is injected and each upstream's own server-side default governs\n(Solana's is \"finalized\"). Set this to pin one commitment across all upstreams\nso the cache and consensus key on identical data regardless of vendor defaults;\nnote that doing so makes finality classification track the configured level."
+        },
+        {
+          "key": "statePollerDebounce",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SvmNetworkConfig",
+          "goName": "StatePollerDebounce",
+          "goType": "common.Duration",
+          "comment": "StatePollerDebounce sets the minimum interval between polls of an upstream's\nslot/health view. Default: 400ms (one slot)."
+        },
+        {
+          "key": "maxFinalizedSlotLag",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "SvmNetworkConfig",
+          "goName": "MaxFinalizedSlotLag",
+          "goType": "*int64",
+          "comment": "MaxFinalizedSlotLag bounds how many slots an upstream's FinalizedSlot may\ntrail the pool's highest FinalizedSlot before it is excluded from\nconsensus voting on finalized data. Only applied when a consensus policy\nis active AND the request's resolved finality is Finalized.\n\nPointer so an explicit 0 is distinguishable from \"unset\": nil takes the\n100-slot default (filled by SetDefaults, the only place that materializes\nit), an explicit 0 disables the filter entirely. A plain int64 collapses\nthose two cases and makes the documented disable switch unreachable.\nReaders downstream of SetDefaults just check `lag != nil \u0026\u0026 *lag \u003e 0`."
+        },
+        {
+          "key": "enforceBlockAvailability",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "SvmNetworkConfig",
+          "goName": "EnforceBlockAvailability",
+          "goType": "*bool",
+          "comment": "EnforceBlockAvailability controls whether the networkPreForward_getBlock\nguard is active. When enabled (default), getBlock/getConfirmedBlock\nrequests for slots above the highest indexed slot known to any upstream\nare short-circuited with ErrEndpointMissingData before hitting providers\n— saving quota and triggering the 500ms indexing-lag retry immediately.\nSet to false to disable the guard when ShredInsertSlot tracking is\nunavailable or unreliable on a given deployment."
+        }
+      ]
+    },
+    "SvmUpstreamConfig": {
+      "fields": [
+        {
+          "key": "chain",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SvmUpstreamConfig",
+          "goName": "Chain",
+          "goType": "string",
+          "comment": "Chain identifies which SVM chain this upstream serves. Must match the\nnetwork-level Chain. Empty defaults to \"solana\" for backward compat."
+        },
+        {
+          "key": "cluster",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "SvmUpstreamConfig",
+          "goName": "Cluster",
+          "goType": "string",
+          "comment": "Cluster this upstream serves. Must match the network-level cluster for the\nupstream to be eligible."
+        },
+        {
+          "key": "checkGenesisHash",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "SvmUpstreamConfig",
+          "goName": "CheckGenesisHash",
+          "goType": "bool",
+          "comment": "CheckGenesisHash opts unknown clusters in to runtime validation via getGenesisHash\nat bootstrap. Known clusters (mainnet-beta, devnet, testnet) are always validated\nregardless of this flag: a single getGenesisHash RPC runs at bootstrap and is\ncompared against the hardcoded genesis-hash table — a mismatch OR a fetch failure\nfails the upstream, catching nodes mis-pointed at the wrong cluster (and refusing\nto register one we could not verify). For unknown clusters the same check (with\nno table comparison) runs only when this flag is set; otherwise it is skipped so\nprivate/local clusters with no published genesis hash still work."
+        }
+      ]
+    },
+    "TLSConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "TLSConfig",
+          "goName": "Enabled",
+          "goType": "bool"
+        },
+        {
+          "key": "certFile",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "TLSConfig",
+          "goName": "CertFile",
+          "goType": "string"
+        },
+        {
+          "key": "keyFile",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "TLSConfig",
+          "goName": "KeyFile",
+          "goType": "string"
+        },
+        {
+          "key": "caFile",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "TLSConfig",
+          "goName": "CAFile",
+          "goType": "string"
+        },
+        {
+          "key": "insecureSkipVerify",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "TLSConfig",
+          "goName": "InsecureSkipVerify",
+          "goType": "bool"
+        }
+      ]
+    },
+    "TimeoutPolicyConfig": {
+      "fields": [
+        {
+          "key": "duration",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "TimeoutPolicyConfig",
+          "goName": "Duration",
+          "goType": "*common.AdaptiveDuration"
+        }
+      ]
+    },
+    "TracingConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "TracingConfig",
+          "goName": "Enabled",
+          "goType": "bool"
+        },
+        {
+          "key": "endpoint",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "TracingConfig",
+          "goName": "Endpoint",
+          "goType": "string"
+        },
+        {
+          "key": "protocol",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "TracingConfig",
+          "goName": "Protocol",
+          "goType": "common.TracingProtocol"
+        },
+        {
+          "key": "sampleRate",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "TracingConfig",
+          "goName": "SampleRate",
+          "goType": "float64"
+        },
+        {
+          "key": "detailed",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "TracingConfig",
+          "goName": "Detailed",
+          "goType": "bool"
+        },
+        {
+          "key": "serviceName",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "TracingConfig",
+          "goName": "ServiceName",
+          "goType": "string"
+        },
+        {
+          "key": "headers",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "string"
+            }
+          },
+          "owner": "TracingConfig",
+          "goName": "Headers",
+          "goType": "map[string]string"
+        },
+        {
+          "key": "tls",
+          "node": {
+            "kind": "object",
+            "ref": "TLSConfig"
+          },
+          "owner": "TracingConfig",
+          "goName": "TLS",
+          "goType": "*common.TLSConfig"
+        },
+        {
+          "key": "resourceAttributes",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "string"
+            }
+          },
+          "owner": "TracingConfig",
+          "goName": "ResourceAttributes",
+          "goType": "map[string]string"
+        },
+        {
+          "key": "forceTraceMatchers",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "ForceTraceMatcher"
+            }
+          },
+          "owner": "TracingConfig",
+          "goName": "ForceTraceMatchers",
+          "goType": "[]*common.ForceTraceMatcher",
+          "comment": "ForceTraceMatchers defines conditions for force-tracing requests.\nEach matcher can specify network and/or method patterns.\nMultiple patterns can be separated by \"|\" (OR within field).\nBoth network and method must match if both are specified (AND between fields).\nIf only one field is specified, only that field is checked."
+        }
+      ]
+    },
+    "UpstreamConfig": {
+      "fields": [
+        {
+          "key": "id",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Id",
+          "goType": "string"
+        },
+        {
+          "key": "type",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Type",
+          "goType": "common.UpstreamType"
+        },
+        {
+          "key": "tags",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Tags",
+          "goType": "[]string",
+          "comment": "Tags is the single canonical user-applied label set. Convention is\n`\u003cdimension\u003e:\u003cvalue\u003e` so a single upstream can carry orthogonal labels:\n\n  tags:\n    - tier:main               # used by .preferTag for tiering\n    - region:us-east          # used by .spreadAcrossTags('region:')\n    - sequencer:op-base       # shared-fate label\n\nBare strings (no prefix) work too. Patterns supported by every\nstdlib tag method: glob (`*`, `?`) and `!negation`.\n\nTier convention: `tier:fallback` declares a fallback-tier upstream\n(matches the long-standing eRPC convention; the default policy\nlooks for `!tier:fallback` as the primary tier).\n\nThe legacy `group: X` / `cohort: Y` YAML keys are accepted at\nload time only — UnmarshalYAML rewrites them as `tier:X` /\n`cohort:Y` tags and forgets them. There is no Go-level Group or\nCohort field; programmatic code uses Tags directly."
+        },
+        {
+          "key": "vendorName",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "VendorName",
+          "goType": "string"
+        },
+        {
+          "key": "endpoint",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Endpoint",
+          "goType": "string"
+        },
+        {
+          "key": "evm",
+          "node": {
+            "kind": "object",
+            "ref": "EvmUpstreamConfig"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Evm",
+          "goType": "*common.EvmUpstreamConfig"
+        },
+        {
+          "key": "svm",
+          "node": {
+            "kind": "object",
+            "ref": "SvmUpstreamConfig"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Svm",
+          "goType": "*common.SvmUpstreamConfig"
+        },
+        {
+          "key": "jsonRpc",
+          "node": {
+            "kind": "object",
+            "ref": "JsonRpcUpstreamConfig"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "JsonRpc",
+          "goType": "*common.JsonRpcUpstreamConfig"
+        },
+        {
+          "key": "grpc",
+          "node": {
+            "kind": "object",
+            "ref": "GrpcUpstreamConfig"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Grpc",
+          "goType": "*common.GrpcUpstreamConfig"
+        },
+        {
+          "key": "ignoreMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "UpstreamConfig",
+          "goName": "IgnoreMethods",
+          "goType": "[]string"
+        },
+        {
+          "key": "allowMethods",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "string"
+            }
+          },
+          "owner": "UpstreamConfig",
+          "goName": "AllowMethods",
+          "goType": "[]string"
+        },
+        {
+          "key": "autoIgnoreUnsupportedMethods",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "AutoIgnoreUnsupportedMethods",
+          "goType": "*bool"
+        },
+        {
+          "key": "failsafe",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "FailsafeConfig"
+            }
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Failsafe",
+          "goType": "[]*common.FailsafeConfig"
+        },
+        {
+          "key": "rateLimitBudget",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "RateLimitBudget",
+          "goType": "string"
+        },
+        {
+          "key": "rateLimitAutoTune",
+          "node": {
+            "kind": "object",
+            "ref": "RateLimitAutoTuneConfig"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "RateLimitAutoTune",
+          "goType": "*common.RateLimitAutoTuneConfig"
+        },
+        {
+          "key": "rateLimitCountMode",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "RateLimitCountMode",
+          "goType": "common.RateLimitCountMode",
+          "comment": "RateLimitCountMode selects how this upstream's rate-limit budget\ncounts a call: \"request\" (default) charges 1 hit, \"credit\" charges the\nrequest's resolved vendor credit-unit cost. Empty resolves to\n\"request\". Applies to the upstream-level budget only."
+        },
+        {
+          "key": "creditUnits",
+          "node": {
+            "kind": "map",
+            "value": {
+              "kind": "number"
+            }
+          },
+          "owner": "UpstreamConfig",
+          "goName": "CreditUnits",
+          "goType": "map[string]int64",
+          "comment": "CreditUnits overrides the vendor's built-in per-method credit table\n(CreditUnitsProvider) for this upstream, merged per method over the\nvendor defaults (\"*\" = fallback for unlisted methods). Normally set\nonce per provider via `providers[].settings.creditUnits`, which is\ncopied onto every upstream the provider generates."
+        },
+        {
+          "key": "shadow",
+          "node": {
+            "kind": "object",
+            "ref": "ShadowUpstreamConfig"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Shadow",
+          "goType": "*common.ShadowUpstreamConfig"
+        },
+        {
+          "key": "routing",
+          "node": {
+            "kind": "object",
+            "ref": "UpstreamRoutingConfig"
+          },
+          "owner": "UpstreamConfig",
+          "goName": "Routing",
+          "goType": "*common.UpstreamRoutingConfig",
+          "comment": "Routing holds per-upstream routing hints consumed by the selection\npolicy. `scoreMultipliers` bias this upstream's rank inside\n`sortByScore` (see SelectionPolicyConfig): the engine resolves the\nmatching entry for each (network, method, finality) tick and exposes\nthe resulting weight map to the eval function as `u.scoreMultipliers`.\nWhen the upstream omits its own `routing` block, `ApplyDefaults`\ninherits the project-level `upstreamDefaults.routing` (all-or-nothing,\nmatching the Tags inheritance pattern)."
+        }
+      ]
+    },
+    "UpstreamIntegrityConfig": {
+      "fields": [
+        {
+          "key": "eth_getBlockReceipts",
+          "node": {
+            "kind": "object",
+            "ref": "UpstreamIntegrityEthGetBlockReceiptsConfig"
+          },
+          "owner": "UpstreamIntegrityConfig",
+          "goName": "EthGetBlockReceipts",
+          "goType": "*common.UpstreamIntegrityEthGetBlockReceiptsConfig"
+        }
+      ]
+    },
+    "UpstreamIntegrityEthGetBlockReceiptsConfig": {
+      "fields": [
+        {
+          "key": "enabled",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "UpstreamIntegrityEthGetBlockReceiptsConfig",
+          "goName": "Enabled",
+          "goType": "bool"
+        },
+        {
+          "key": "checkLogIndexStrictIncrements",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "UpstreamIntegrityEthGetBlockReceiptsConfig",
+          "goName": "CheckLogIndexStrictIncrements",
+          "goType": "*bool"
+        },
+        {
+          "key": "checkLogsBloom",
+          "node": {
+            "kind": "boolean"
+          },
+          "owner": "UpstreamIntegrityEthGetBlockReceiptsConfig",
+          "goName": "CheckLogsBloom",
+          "goType": "*bool"
+        }
+      ]
+    },
+    "UpstreamRoutingConfig": {
+      "fields": [
+        {
+          "key": "scoreMultipliers",
+          "node": {
+            "kind": "array",
+            "item": {
+              "kind": "object",
+              "ref": "ScoreMultiplierConfig"
+            }
+          },
+          "owner": "UpstreamRoutingConfig",
+          "goName": "ScoreMultipliers",
+          "goType": "[]*common.ScoreMultiplierConfig",
+          "comment": "ScoreMultipliers biases this upstream's rank. Each entry is a\nmatcher (network/method/finality) plus weight overrides; the engine\nresolves the first matching entry per tick and hands it to the eval\nfunction as `u.scoreMultipliers`. `sortByScore` merges it over the\nbase weights by default (see its `multipliers` option)."
+        },
+        {
+          "key": "scoreLatencyQuantile",
+          "node": {
+            "kind": "number"
+          },
+          "owner": "UpstreamRoutingConfig",
+          "goName": "ScoreLatencyQuantile",
+          "goType": "float64",
+          "comment": "ScoreLatencyQuantile selects which response-time quantile feeds the\nscore (e.g. 0.9 → p90). When unset, the policy's own\n`sortByScore({ latencyQuantile })` (default p70) applies."
+        },
+        {
+          "key": "probe",
+          "node": {
+            "kind": "string"
+          },
+          "owner": "UpstreamRoutingConfig",
+          "goName": "Probe",
+          "goType": "common.ProbeMode",
+          "comment": "Probe gates whether the selection policy's `probeExcluded` step\nmay shadow-mirror real requests to THIS upstream when it's\ncurrently in the excluded set. `\"on\"` (default) opts in; `\"off\"`\ndisables probing entirely — the upstream stays excluded\npermanently once predicates trip until an operator intervenes\n(manual cordon/uncordon, or until the predicate stops matching\nvia state-poller-driven structural metrics like head lag). Use\n`\"off\"` for pay-per-call vendors where shadow traffic eats quota."
+        }
+      ]
+    }
+  }
+}

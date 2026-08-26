@@ -6,10 +6,11 @@
 
 ```powershell
 Set-Location E:\go\goProject\eRPC\Admin
-$env:ERPC_ADMIN_DATABASE_URL = "postgres://<user>:<password>@127.0.0.1:5432/erpc_admin?sslmode=disable"
 go build -o admin.exe ./cmd/admin
 .\admin.exe -config .\admin.yaml
 ```
+
+PostgreSQL 连接串保存在已被 Git 忽略的 `admin.yaml` 的 `databaseUrl` 中，配置一次后无需在每个 PowerShell 窗口重新设置。`databaseUrlEnv` 是可选覆盖项；对应环境变量存在时优先使用环境变量。
 
 前端开发服务：
 
@@ -31,7 +32,7 @@ pnpm dev -- --port 8180
 
 ## 数据与密钥
 
-管理员密码只保存 bcrypt 哈希。按当前单机方案，eRPC RPC URL、Admin secret 和其他配置密钥会以明文保存于 PostgreSQL及生成的 YAML；数据库和 `Admin/data` 必须仅允许本机可信用户访问。
+管理员密码只保存 bcrypt 哈希。按当前单机方案，PostgreSQL 连接串保存在被 Git 忽略的 `admin.yaml`；eRPC RPC URL、Admin secret 和其他配置密钥会以明文保存于 PostgreSQL 及生成的 YAML。`admin.yaml`、数据库和 `Admin/data` 必须仅允许本机可信用户访问。
 
 所有 eRPC 配置都通过中文字段表单维护。Admin 在保存和启动时内部生成
 YAML，用户不需要编写、粘贴或理解 YAML。

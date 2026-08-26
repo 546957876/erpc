@@ -47,6 +47,24 @@ func TestValidatorReturnsConfigurationErrors(t *testing.T) {
 	}
 }
 
+func TestValidatorNormalizesMissingReportLists(t *testing.T) {
+	document, err := ParseJSON([]byte(`{"server":{"httpPortV4":4000}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validator := Validator{RuntimeDir: t.TempDir()}
+	validator.run = func(context.Context, string) ([]byte, error) {
+		return []byte(`{"valid":true}`), nil
+	}
+	result, err := validator.Validate(context.Background(), document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Errors == nil || result.Warnings == nil || result.Notices == nil {
+		t.Fatalf("report lists must be JSON arrays, got %#v", result)
+	}
+}
+
 func TestValidatorDumpOverlaysOriginalOverrides(t *testing.T) {
 	document, err := ParseJSON([]byte(`{"secret":"plain","settings":{"enabled":true}}`))
 	if err != nil {
@@ -72,6 +90,81 @@ func TestValidatorDumpOverlaysOriginalOverrides(t *testing.T) {
 	}
 	if !jsonValuesEqual(got, want) {
 		t.Fatalf("effective = %s", effective.Payload)
+	}
+}
+
+func TestValidatorDumpOmitsGeneratedProviderSettingsRedactions(t *testing.T) {
+	document, err := ParseJSON([]byte(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validator := Validator{RuntimeDir: t.TempDir()}
+	validator.dump = func(context.Context, string) ([]byte, error) {
+		return []byte(`{"projects":[{"id":"main","providers":[{"id":"public","vendor":"repository","settings":"REDACTED"},{"id":"envio","vendor":"envio","settings":"REDACTED"}]}]}`), nil
+	}
+	effective, err := validator.Dump(context.Background(), document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(effective.YAML, []byte("REDACTED")) {
+		t.Fatalf("generated provider redaction leaked into reloadable YAML:\n%s", effective.YAML)
+	}
+	assertDocumentJSON(t, effective, `{"projects":[{"id":"main","providers":[{"id":"public","vendor":"repository"},{"id":"envio","vendor":"envio"}]}]}`)
+}
+
+func TestValidatorDumpRestoresExplicitProviderSettings(t *testing.T) {
+	document, err := ParseJSON([]byte(`{"projects":[{"id":"main","providers":[{"id":"alchemy-main","vendor":"alchemy","settings":{"apiKey":"plain-key"}}]}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validator := Validator{RuntimeDir: t.TempDir()}
+	validator.dump = func(context.Context, string) ([]byte, error) {
+		return []byte(`{"projects":[{"id":"main","providers":[{"id":"alchemy-main","vendor":"alchemy","settings":"REDACTED"}]}]}`), nil
+	}
+	effective, err := validator.Dump(context.Background(), document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertDocumentJSON(t, effective, `{"projects":[{"id":"main","providers":[{"id":"alchemy-main","vendor":"alchemy","settings":{"apiKey":"plain-key"}}]}]}`)
+}
+
+func TestValidatorDumpRoundTripsERPCDefaults(t *testing.T) {
+	binary := os.Getenv("ERPC_TEST_BINARY")
+	if binary == "" {
+		t.Skip("ERPC_TEST_BINARY is not set")
+	}
+	document, err := ParseJSON([]byte(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validator := Validator{Binary: binary, RuntimeDir: t.TempDir()}
+	effective, err := validator.Dump(context.Background(), document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(effective.YAML, []byte("REDACTED")) {
+		t.Fatalf("eRPC default dump still contains a redaction placeholder:\n%s", effective.YAML)
+	}
+	result, err := validator.Validate(context.Background(), effective)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Valid {
+		t.Fatalf("sanitized eRPC defaults failed validation: %v", result.Errors)
+	}
+}
+
+func assertDocumentJSON(t *testing.T, document Document, expected string) {
+	t.Helper()
+	var got, want any
+	if err := json.Unmarshal(document.Payload, &got); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(expected), &want); err != nil {
+		t.Fatal(err)
+	}
+	if !jsonValuesEqual(got, want) {
+		t.Fatalf("document = %s", document.Payload)
 	}
 }
 

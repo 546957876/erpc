@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -34,15 +36,101 @@ func (n preciseNumber) MarshalYAML() (any, error) {
 }
 
 func ParseYAML(data []byte) (Document, error) {
-	var value any
-	if err := yaml.Unmarshal(data, &value); err != nil {
+	var document yaml.Node
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	if err := decoder.Decode(&document); err != nil {
 		return Document{}, fmt.Errorf("parse eRPC YAML: %w", err)
+	}
+	value, err := yamlValue(&document)
+	if err != nil {
+		return Document{}, err
 	}
 	normalized, err := normalize(value)
 	if err != nil {
 		return Document{}, err
 	}
 	return build(normalized)
+}
+
+var jsonNumberPattern = regexp.MustCompile(`^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$`)
+
+func yamlValue(node *yaml.Node) (any, error) {
+	if node == nil {
+		return nil, nil
+	}
+	switch node.Kind {
+	case yaml.DocumentNode:
+		if len(node.Content) == 0 {
+			return nil, nil
+		}
+		return yamlValue(node.Content[0])
+	case yaml.AliasNode:
+		return yamlValue(node.Alias)
+	case yaml.MappingNode:
+		result := make(map[string]any, len(node.Content)/2)
+		for index := 0; index+1 < len(node.Content); index += 2 {
+			keyValue, err := yamlValue(node.Content[index])
+			if err != nil {
+				return nil, err
+			}
+			key, ok := keyValue.(string)
+			if !ok {
+				return nil, fmt.Errorf("eRPC configuration key %v is not a string", keyValue)
+			}
+			item, err := yamlValue(node.Content[index+1])
+			if err != nil {
+				return nil, err
+			}
+			result[key] = item
+		}
+		return result, nil
+	case yaml.SequenceNode:
+		result := make([]any, len(node.Content))
+		for index, child := range node.Content {
+			item, err := yamlValue(child)
+			if err != nil {
+				return nil, err
+			}
+			result[index] = item
+		}
+		return result, nil
+	case yaml.ScalarNode:
+		switch node.Tag {
+		case "!!null":
+			return nil, nil
+		case "!!int", "!!float":
+			if number, ok := yamlJSONNumber(node.Value); ok {
+				return preciseNumber(number), nil
+			}
+		}
+		var value any
+		if err := node.Decode(&value); err != nil {
+			return nil, fmt.Errorf("decode eRPC YAML scalar: %w", err)
+		}
+		return value, nil
+	default:
+		return nil, fmt.Errorf("unsupported eRPC YAML node kind %d", node.Kind)
+	}
+}
+
+func yamlJSONNumber(raw string) (string, bool) {
+	value := strings.TrimSpace(raw)
+	if strings.HasPrefix(value, "+") {
+		value = value[1:]
+	}
+	if strings.HasPrefix(value, ".") {
+		value = "0" + value
+	} else if strings.HasPrefix(value, "-.") {
+		value = "-0" + value[1:]
+	}
+	if !jsonNumberPattern.MatchString(value) {
+		return "", false
+	}
+	if _, err := strconv.ParseFloat(value, 64); err != nil && !strings.ContainsAny(value, ".eE") {
+		// Keep arbitrarily large integers as precise JSON numbers.
+		return value, true
+	}
+	return value, true
 }
 
 func ParseJSON(data []byte) (Document, error) {

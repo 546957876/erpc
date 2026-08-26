@@ -116,3 +116,13 @@ func TestParseJSONPreservesLargeInteger(t *testing.T) {
 		t.Fatalf("number or duration changed: %s / %s", document.Payload, document.YAML)
 	}
 }
+
+func TestParseYAMLPreservesLargeDecimal(t *testing.T) {
+	document, err := ParseYAML([]byte("value: 12345678901234567890.12345678901234567890\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(document.Payload, []byte("12345678901234567890.12345678901234567890")) {
+		t.Fatalf("YAML number changed: %s", document.Payload)
+	}
+}

@@ -42,3 +42,60 @@ func TestPollTransitionsFromHealthyToDegraded(t *testing.T) {
 		t.Fatalf("expected degraded snapshot, got %#v", snapshot)
 	}
 }
+
+func TestSetManagedTarget(t *testing.T) {
+	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": 1, "result": map[string]any{"projects": []any{}}})
+	}))
+	defer httpServer.Close()
+	reg, err := New(config.RuntimeConfig{PollInterval: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := reg.SetTarget("local-erpc", httpServer.URL, "secret"); err != nil {
+		t.Fatal(err)
+	}
+	if err := reg.PollOnce(context.Background(), "local-erpc"); err != nil {
+		t.Fatal(err)
+	}
+	if snapshot, ok := reg.Snapshot("local-erpc"); !ok || snapshot.Status != Healthy {
+		t.Fatalf("unexpected managed target: %#v, exists=%v", snapshot, ok)
+	}
+	reg.ClearTarget("local-erpc")
+	if _, ok := reg.Snapshot("local-erpc"); ok {
+		t.Fatal("managed target was not cleared")
+	}
+}
+
+func TestClearAndReplaceManagedTargetRestartsPollingHandle(t *testing.T) {
+	requests := make(chan struct{}, 8)
+	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests <- struct{}{}
+		_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": 1, "result": map[string]any{"projects": []any{}}})
+	}))
+	defer httpServer.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	reg, err := New(config.RuntimeConfig{PollInterval: time.Hour})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reg.Start(ctx)
+	if err := reg.SetTarget("local-erpc", httpServer.URL, "secret"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-requests:
+	case <-time.After(time.Second):
+		t.Fatal("initial managed target poll did not run")
+	}
+	reg.ClearTarget("local-erpc")
+	if err := reg.SetTarget("local-erpc", httpServer.URL, "secret"); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-requests:
+	case <-time.After(time.Second):
+		t.Fatal("replacement managed target poll did not run")
+	}
+}

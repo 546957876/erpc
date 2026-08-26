@@ -49,7 +49,13 @@ func (v Validator) Validate(ctx context.Context, document Document) (ValidationR
 		}
 		return ValidationResult{}, fmt.Errorf("decode eRPC validation report: %w", err)
 	}
-	result := ValidationResult{Valid: len(report.Errors) == 0, Errors: report.Errors, Warnings: report.Warnings, Notices: report.Notices, Report: append(json.RawMessage(nil), output...)}
+	// Keep collection fields as JSON arrays even when eRPC omits them. The
+	// Admin Web renders these lists after every validation/save; null would
+	// otherwise turn a valid response into a client-side render failure.
+	errors := append([]string{}, report.Errors...)
+	warnings := append([]string{}, report.Warnings...)
+	notices := append([]string{}, report.Notices...)
+	result := ValidationResult{Valid: len(errors) == 0, Errors: errors, Warnings: warnings, Notices: notices, Report: append(json.RawMessage(nil), output...)}
 	if commandErr != nil && result.Valid {
 		return ValidationResult{}, fmt.Errorf("run eRPC validation: %w", commandErr)
 	}
@@ -77,11 +83,60 @@ func (v Validator) Dump(ctx context.Context, document Document) (Document, error
 	if err != nil {
 		return Document{}, fmt.Errorf("decode eRPC dump: %w", err)
 	}
+	dumped, err = stripGeneratedProviderSettingsRedactions(dumped)
+	if err != nil {
+		return Document{}, fmt.Errorf("sanitize eRPC dump: %w", err)
+	}
 	effective, err := Overlay(dumped, document)
 	if err != nil {
 		return Document{}, fmt.Errorf("overlay eRPC dump: %w", err)
 	}
 	return effective, nil
+}
+
+func stripGeneratedProviderSettingsRedactions(document Document) (Document, error) {
+	value, err := decodeJSON(document.Payload)
+	if err != nil {
+		return Document{}, err
+	}
+	root, ok := value.(map[string]any)
+	if !ok {
+		return document, nil
+	}
+	projects, ok := root["projects"].([]any)
+	if !ok {
+		return document, nil
+	}
+	changed := false
+	for _, projectValue := range projects {
+		project, ok := projectValue.(map[string]any)
+		if !ok {
+			continue
+		}
+		providers, ok := project["providers"].([]any)
+		if !ok {
+			continue
+		}
+		for _, providerValue := range providers {
+			provider, ok := providerValue.(map[string]any)
+			if !ok {
+				continue
+			}
+			settings, ok := provider["settings"].(string)
+			if ok && settings == "REDACTED" {
+				delete(provider, "settings")
+				changed = true
+			}
+		}
+	}
+	if !changed {
+		return document, nil
+	}
+	normalized, err := normalize(root)
+	if err != nil {
+		return Document{}, err
+	}
+	return build(normalized)
 }
 
 func (v Validator) runDocument(ctx context.Context, document Document, operation string, run func(context.Context, string) ([]byte, error)) ([]byte, error, error) {

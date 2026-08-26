@@ -37,6 +37,16 @@ export type ConfigRevision = {
 };
 export type ValidationResult = { valid: boolean; errors: string[]; warnings: string[]; notices: string[]; report?: unknown };
 
+export function normalizeValidationResult(value: Partial<ValidationResult> | null | undefined): ValidationResult {
+  return {
+    valid: value?.valid === true,
+    errors: Array.isArray(value?.errors) ? value.errors : [],
+    warnings: Array.isArray(value?.warnings) ? value.warnings : [],
+    notices: Array.isArray(value?.notices) ? value.notices : [],
+    report: value?.report,
+  };
+}
+
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   headers.set("content-type", "application/json");
@@ -113,7 +123,7 @@ export function useConfigRevision(revision: number): UseQueryResult<ConfigRevisi
 }
 
 export function useValidateConfig() {
-  return useMutation({ mutationFn: (input: { yaml?: string; payload?: ConfigPayload }) => apiRequest<ValidationResult>("/api/config/validate", { method: "POST", body: JSON.stringify(input) }) });
+  return useMutation({ mutationFn: async (input: { yaml?: string; payload?: ConfigPayload }) => normalizeValidationResult(await apiRequest<ValidationResult>("/api/config/validate", { method: "POST", body: JSON.stringify(input) })) });
 }
 
 export function useSaveConfig() {

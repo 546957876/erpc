@@ -1,5 +1,8 @@
 # Independent Admin Control Plane Implementation Plan
 
+**Status:** Phase 1 baseline. Managed process and versioned PostgreSQL config
+work continues in `2026-08-26-admin-managed-erpc.md`.
+
 ## Scope
 
 Create two independent applications under the repository directory: `Admin/`

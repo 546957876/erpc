@@ -22,7 +22,7 @@
 
 - [ ] Write tests proving an empty store requires setup, setup writes no plaintext password, correct credentials authenticate, wrong credentials fail, and a second setup is rejected.
 - [ ] Run `go test ./internal/auth ./internal/config` and confirm failure because the auth store and `authFile` config do not exist.
-- [ ] Implement the minimal mutex-protected JSON file store using bcrypt and atomic create/rename. Validate trimmed usernames at 3-64 characters and passwords at 8-128 characters.
+- [ ] Implement the minimal mutex-protected JSON file store using bcrypt and atomic create/rename. Validate trimmed usernames at 3-64 characters and passwords at 8-72 bytes.
 - [ ] Add `authFile` with default `data/admin-auth.json` to config parsing and runtime config.
 - [ ] Run `go test ./internal/auth ./internal/config` and confirm all tests pass.
 

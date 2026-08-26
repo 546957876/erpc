@@ -1,5 +1,7 @@
 # Managed eRPC Admin Control Plane Implementation Plan
 
+> 2026-08-27 启动修正：单机配置改为从已被 Git 忽略的 `Admin/admin.yaml` 直接读取 `databaseUrl`，`databaseUrlEnv` 仅作为可选覆盖；Admin 启动 eRPC 时传入生成配置的绝对路径。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [ ]) syntax for tracking.
 
 **Goal:** Extend the standalone Admin and Chinese Web applications so one local eRPC process is configured through versioned PostgreSQL documents and explicitly started, stopped, or restarted without modifying eRPC itself.
@@ -658,20 +660,20 @@ Expected: tests and build pass; no save triggers restart.
 - Modify: web/src/styles.css
 - Create: web/src/config/fields.ts
 
-- [ ] **Step 1: Add the pinned eRPC field schema**
+- [x] **Step 1: Add the pinned eRPC field schema**
 
 Describe the current root groups from common.Config and their nested fields as
 Chinese form metadata. Reuse Ant Design controls already installed; add no form
 generator or YAML dependency. Arrays use repeatable rows and nested drawers.
 
-- [ ] **Step 2: Add first-configuration defaults**
+- [x] **Step 2: Add first-configuration defaults**
 
 When no revision exists, show fields prefilled from the original eRPC example:
 log level DEBUG, HTTP host 0.0.0.0, HTTP port 4000, project ID main, and one
 editable upstream row. Saving builds a JSON payload and calls the existing
 validate and revision endpoints.
 
-- [ ] **Step 3: Replace advanced YAML editing**
+- [x] **Step 3: Replace advanced YAML editing**
 
 Replace the text area with sectioned Chinese fields covering logLevel,
 clusterKey, server, healthCheck, admin, database, projects, rateLimiters,
@@ -683,7 +685,7 @@ section where possible.
 
 List revision, hash prefix, creator, and creation time. Detail view fetches the full revision only after selection. Restore requires confirmation and creates a new latest revision; it does not restart eRPC.
 
-- [ ] **Step 5: Test initial creation, validation failure, and restore cache updates**
+- [x] **Step 5: Test initial creation, validation failure, and restore cache updates**
 
 Use Vitest to assert the initial fields build the expected payload, invalid
 values never save, unknown payload keys survive edits, and successful restore
@@ -779,9 +781,9 @@ git commit -m "docs(admin): document managed erpc workflow"
 - [ ] Start/restart uses and records the latest valid revision.
 - [x] Running versus latest revision is visible in Chinese.
 - [x] Persistent upstream CRUD and immediate cordon are visually distinct.
-- [ ] Replace the YAML editor with sectioned Chinese fields for all current
+- [x] Replace the YAML editor with sectioned Chinese fields for all current
   root configuration groups and nested settings.
-- [ ] Preserve unknown keys when structured form values are merged and saved.
-- [ ] First configuration can be created without importing or writing YAML.
+- [x] Preserve unknown keys when structured form values are merged and saved.
+- [x] First configuration can be created without importing or writing YAML.
 - [x] Admin never terminates a process it cannot prove it owns.
 - [x] eRPC root source and public YAML schema are unchanged.

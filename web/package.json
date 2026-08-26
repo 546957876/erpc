@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "generate:config": "go run ./scripts/generate-config-schema.go -out ./src/config/schema.generated.json",
+    "prebuild": "pnpm generate:config",
     "build": "tsc -b && vite build",
     "test": "vitest run"
   },
@@ -16,9 +18,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-redux": "^9.3.0",
-    "react-router-dom": "^7.18.2",
-    "redux": "^5.0.1",
-    "redux-persist": "^6.0.0"
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

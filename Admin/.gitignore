@@ -1,3 +1,6 @@
 .tmp/
 admin.yaml
 admin.local.yaml
+data/
+admin.exe
+admin.exe~
