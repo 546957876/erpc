@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RPC_NETWORK_PRESETS, buildPublicRPCUrl, buildRPCCommands, effectiveRPCPort, formatRPCBody, parseRPCParams, rpcResultSucceeded, runtimeProjectIDs, savedRequestIsCurrent, savedResultForRevision, savedUpstreamRows, secretForCopiedCommand } from "./RpcDebug";
+import { RPC_NETWORK_PRESETS, buildPublicRPCUrl, buildRPCCommands, effectiveRPCPort, formatRPCBody, parseRPCParams, rpcResultSucceeded, runtimeProjectIDs, runtimeUpstreamIDs, savedRequestIsCurrent, savedResultForRevision, savedUpstreamRows, secretForCopiedCommand } from "./RpcDebug";
 
 describe("RPC debug helpers", () => {
   it("provides convenience presets without closing the network input", () => {
@@ -14,6 +14,31 @@ describe("RPC debug helpers", () => {
   it("keeps configured projects usable before provider taxonomy is initialized", () => {
     expect(runtimeProjectIDs([], { projects: [{ id: "main" }, { id: "backup" }] })).toEqual(["main", "backup"]);
     expect(runtimeProjectIDs([{ id: "main", networks: [] }], { projects: [{ id: "main" }, { id: "backup" }] })).toEqual(["main", "backup"]);
+  });
+
+  it("derives provider upstream ids when the runtime taxonomy is unavailable", () => {
+    const payload = {
+      projects: [{
+        id: "main",
+        upstreams: [{ id: "static-node", endpoint: "https://rpc.example.test" }],
+        providers: [
+          { id: "alchemy-main", vendor: "alchemy", upstreamIdTemplate: "<PROVIDER>-<NETWORK>" },
+          { id: "eth-only", vendor: "repository", onlyNetworks: ["evm:1"], upstreamIdTemplate: "<VENDOR>-<EVM_CHAIN_ID>" },
+          { id: "ignored", vendor: "repository", ignoreNetworks: ["evm:56"], upstreamIdTemplate: "<PROVIDER>-<NETWORK>" },
+        ],
+      }],
+    };
+
+    expect(runtimeUpstreamIDs([], payload, "main", "evm:56")).toEqual([
+      "static-node",
+      "alchemy-main-evm:56",
+    ]);
+    expect(runtimeUpstreamIDs([], payload, "main", "evm:1")).toEqual([
+      "static-node",
+      "alchemy-main-evm:1",
+      "repository-1",
+      "ignored-evm:1",
+    ]);
   });
 
   it("accepts empty, array, and object params", () => {

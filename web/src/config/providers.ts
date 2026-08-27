@@ -199,6 +199,14 @@ export function providerDefinition(value: string): ProviderDefinition {
   return providerCatalog.find((item) => item.value === value) || { value, label: value, fields: [] };
 }
 
+/** Keep the UI's provider preview identical to eRPC's generated upstream IDs. */
+export function renderProviderUpstreamID(template: string, vendor: string, providerID: string, networkID: string): string {
+  let result = template || "<PROVIDER>-<NETWORK>";
+  result = result.replaceAll("<VENDOR>", vendor).replaceAll("<PROVIDER>", providerID).replaceAll("<NETWORK>", networkID);
+  result = result.replaceAll("<EVM_CHAIN_ID>", networkID.startsWith("evm:") ? networkID.slice("evm:".length) : "N/A");
+  return result;
+}
+
 export type NetworkMode = "all" | "only" | "ignore";
 export type ProviderLocation = { projectIndex: number; providerIndex: number };
 export type ProviderInput = {

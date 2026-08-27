@@ -13,6 +13,7 @@ import {
   type RpcTestResult,
 } from "../app/api";
 import { listUpstreams, type UpstreamRow } from "../config/upstreams";
+import { listProviders, renderProviderUpstreamID } from "../config/providers";
 
 export const RPC_NETWORK_PRESETS = [
   { value: "evm:1", label: "Ethereum 主网" },
@@ -104,6 +105,22 @@ export function runtimeProjectIDs(taxonomyProjects: Project[], payload: ConfigPa
   return [...new Set([...taxonomyProjects.map((project) => project.id), ...configuredProjects])];
 }
 
+export function runtimeUpstreamIDs(taxonomyProjects: Project[], payload: ConfigPayload, projectID: string, networkID: string): string[] {
+  const runtime = taxonomyProjects
+    .find((project) => project.id === projectID)
+    ?.networks
+    .flatMap((network) => Array.isArray(network.upstreams) ? network.upstreams.map((upstream) => upstream.id) : []) || [];
+  const saved = listUpstreams(payload)
+    .filter((row) => row.projectId === projectID)
+    .map((row) => row.id);
+  const generated = networkID.trim()
+    ? listProviders(payload)
+      .filter((row) => row.projectId === projectID && providerAllowsNetwork(row.networkMode, row.networks, networkID))
+      .map((row) => renderProviderUpstreamID(String(row.raw.upstreamIdTemplate || "<PROVIDER>-<NETWORK>"), row.vendor, row.id, networkID))
+    : [];
+  return [...new Set([...runtime, ...saved, ...generated].filter(Boolean))];
+}
+
 export function savedUpstreamRows(config: Pick<ConfigRevision, "payload" | "effectivePayload">): UpstreamRow[] {
   return listUpstreams(config.effectivePayload || config.payload || {}).filter((row) => Boolean(row.endpoint));
 }
@@ -154,7 +171,7 @@ export function RpcDebugPage() {
   const projectOptions = availableProjectIDs.map((value) => ({ value, label: value }));
   const upstreamOptions = mode === "saved"
     ? savedRows.filter((row) => row.projectId === projectID).map((row) => ({ value: row.id, label: row.id }))
-    : [...new Set(runtimeProjects.find((project) => project.id === projectID)?.networks.flatMap((network) => Array.isArray(network.upstreams) ? network.upstreams.map((upstream) => upstream.id) : []) || [])].map((value) => ({ value, label: value }));
+    : runtimeUpstreamIDs(runtimeProjects, currentEffective, projectID, networkID).map((value) => ({ value, label: value }));
   const requestURL = buildPublicRPCUrl(publicBaseURL, projectID, networkID);
   const detectedBaseURL = typeof window === "undefined" ? `http://127.0.0.1:${effectiveRPCPort(currentEffective)}` : `${window.location.protocol}//${window.location.hostname}:${effectiveRPCPort(currentEffective)}`;
   const testing = savedTest.isPending || runtimeTest.isPending;
@@ -303,4 +320,10 @@ export function RpcDebugPage() {
 
 function record(value: unknown): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, any> : {};
+}
+
+function providerAllowsNetwork(mode: string, networks: string[], networkID: string): boolean {
+  if (mode === "only") return networks.includes(networkID);
+  if (mode === "ignore") return !networks.includes(networkID);
+  return true;
 }
