@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { App as AntApp, Alert, Button, Drawer, Empty, Form, Input, Layout, Menu, Modal, Result, Select, Space, Spin, Table, Tag, Tooltip, message } from "antd";
+import { App as AntApp, Alert, Button, Drawer, Empty, Form, Input, InputNumber, Layout, Menu, Modal, Result, Select, Space, Spin, Table, Tag, Tooltip, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ApiOutlined, CheckCircleOutlined, CloudServerOutlined, ControlOutlined, DashboardOutlined, ExperimentOutlined, FormOutlined, HistoryOutlined, LoginOutlined, LogoutOutlined, PlayCircleOutlined, QuestionCircleOutlined, RadarChartOutlined, ReloadOutlined, SafetyCertificateOutlined, SaveOutlined, StopOutlined } from "@ant-design/icons";
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -389,10 +389,10 @@ function TargetPage({ fallback }: { fallback?: TargetSnapshot }) {
           onFinish={(values) => void saveHealth(values)}
         >
           <div className="form-grid">
-            <Form.Item name="statePollerInterval" label={<HealthFieldLabel title="EVM 状态轮询周期" help="每个 EVM 上游主动查询最新块、最终块和同步状态的周期。运行默认值 30s。" />} rules={[{ required: true, whitespace: true }]}><Input placeholder="30s" /></Form.Item>
-            <Form.Item name="selectionEvalInterval" label={<HealthFieldLabel title="选路重算周期" help="eRPC 根据健康指标重新计算上游顺序的周期。运行默认值 15s。" />} rules={[{ required: true, whitespace: true }]}><Input placeholder="15s" /></Form.Item>
-            <Form.Item name="scoreMetricsWindowSize" label={<HealthFieldLabel title="健康指标统计窗口" help="错误率和延迟等指标的滚动统计窗口。运行时缺省回退为 1m。" />} rules={[{ required: true, whitespace: true }]}><Input placeholder="1m" /></Form.Item>
-            <Form.Item name="svmStatePollerDebounce" label={<HealthFieldLabel title="SVM 状态轮询防抖" help="限制 SVM 节点槽位与健康状态刷新频率。运行默认值 400ms。" />} rules={[{ required: true, whitespace: true }]}><Input placeholder="400ms" /></Form.Item>
+            <Form.Item name="statePollerInterval" label={<HealthFieldLabel title="EVM 状态轮询周期" help="单位：秒。每隔多久主动查询 EVM 上游最新块、最终块和同步状态。默认 30 秒；填写 600 就是 600 秒。" />} extra="单位：秒，只填写数字，例如 600。" rules={[{ required: true, message: "请输入数值" }, { type: "number", min: 0.001, message: "请输入大于 0 的数值" }]}><InputNumber min={0.001} step={1} precision={6} addonAfter="秒" className="w-full" /></Form.Item>
+            <Form.Item name="selectionEvalInterval" label={<HealthFieldLabel title="选路重算周期" help="单位：秒。eRPC 根据健康指标重新计算上游顺序的周期。默认 15 秒。" />} extra="单位：秒，只填写数字，例如 15。" rules={[{ required: true, message: "请输入数值" }, { type: "number", min: 0.001, message: "请输入大于 0 的数值" }]}><InputNumber min={0.001} step={1} precision={6} addonAfter="秒" className="w-full" /></Form.Item>
+            <Form.Item name="scoreMetricsWindowSize" label={<HealthFieldLabel title="健康指标统计窗口" help="单位：分钟。错误率、延迟等指标在这段时间内滚动统计。默认 1 分钟。" />} extra="单位：分钟，只填写数字，例如 1。" rules={[{ required: true, message: "请输入数值" }, { type: "number", min: 0.001, message: "请输入大于 0 的数值" }]}><InputNumber min={0.001} step={1} precision={6} addonAfter="分钟" className="w-full" /></Form.Item>
+            <Form.Item name="svmStatePollerDebounce" label={<HealthFieldLabel title="SVM 状态轮询防抖" help="单位：毫秒。两次 SVM 状态刷新之间的最短间隔。默认 400 毫秒。" />} extra="单位：毫秒，只填写数字，例如 400。" rules={[{ required: true, message: "请输入数值" }, { type: "number", min: 0.001, message: "请输入大于 0 的数值" }]}><InputNumber min={0.001} step={1} precision={6} addonAfter="毫秒" className="w-full" /></Form.Item>
           </div>
           <Button type="primary" htmlType="submit" icon={<SaveOutlined />} disabled={!healthDirty} loading={saveConfig.isPending || validateConfig.isPending}>保存健康配置</Button>
         </Form>

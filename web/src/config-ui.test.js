@@ -137,6 +137,12 @@ describe("field-only configuration UI", () => {
     expect(app).toMatch(/选路重算周期/);
     expect(app).toMatch(/健康指标统计窗口/);
     expect(app).toMatch(/SVM 状态轮询防抖/);
+    expect(app).toMatch(/单位：秒，只填写数字/);
+    expect(app).toMatch(/单位：分钟，只填写数字/);
+    expect(app).toMatch(/单位：毫秒，只填写数字/);
+    expect(app).toMatch(/addonAfter="秒"/);
+    expect(app).toMatch(/addonAfter="分钟"/);
+    expect(app).toMatch(/addonAfter="毫秒"/);
     expect(app).toMatch(/disabled=\{!healthDirty\}/);
     expect(app).toMatch(/放弃未保存的健康配置/);
     expect(app).toMatch(/项目需要访问密钥/);
