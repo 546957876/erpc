@@ -228,11 +228,11 @@ func (r *Registry) PollOnce(ctx context.Context, id string) error {
 func safeError(err error) string {
 	var rpcErr *erpc.RPCError
 	if errors.As(err, &rpcErr) {
-		return fmt.Sprintf("eRPC RPC error %d", rpcErr.Code)
+		return fmt.Sprintf("eRPC RPC 错误 %d", rpcErr.Code)
 	}
 	var httpErr *erpc.HTTPError
 	if errors.As(err, &httpErr) {
-		return fmt.Sprintf("eRPC HTTP status %d", httpErr.Status)
+		return fmt.Sprintf("eRPC HTTP 状态 %d", httpErr.Status)
 	}
 	message := strings.TrimSpace(err.Error())
 	if len(message) > 256 {

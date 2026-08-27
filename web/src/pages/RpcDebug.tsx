@@ -7,7 +7,9 @@ import {
   useSavedUpstreamTest,
   useTargets,
   useTaxonomy,
+  type ConfigPayload,
   type ConfigRevision,
+  type Project,
   type RpcTestResult,
 } from "../app/api";
 import { listUpstreams, type UpstreamRow } from "../config/upstreams";
@@ -92,6 +94,16 @@ export function secretForCopiedCommand(projectSecret: string, includeRealSecret:
   return includeRealSecret ? projectSecret : "<PROJECT_SECRET>";
 }
 
+export function runtimeProjectIDs(taxonomyProjects: Project[], payload: ConfigPayload): string[] {
+  const configuredProjects = Array.isArray(payload.projects)
+    ? payload.projects.flatMap((project) => {
+      const id = record(project).id;
+      return typeof id === "string" && id.trim() ? [id] : [];
+    })
+    : [];
+  return [...new Set([...taxonomyProjects.map((project) => project.id), ...configuredProjects])];
+}
+
 export function savedUpstreamRows(config: Pick<ConfigRevision, "payload" | "effectivePayload">): UpstreamRow[] {
   return listUpstreams(config.effectivePayload || config.payload || {}).filter((row) => Boolean(row.endpoint));
 }
@@ -137,15 +149,16 @@ export function RpcDebugPage() {
   const savedRows = useMemo(() => savedUpstreamRows(current.data || {}), [current.data?.effectivePayload, current.data?.payload]);
   const savedProjects = useMemo(() => [...new Set(savedRows.map((row) => row.projectId))], [savedRows]);
   const runtimeProjects = useMemo(() => Array.isArray(taxonomy.data?.projects) ? taxonomy.data.projects : [], [taxonomy.data?.projects]);
-  const availableProjectIDs = useMemo(() => mode === "saved" ? savedProjects : runtimeProjects.map((project) => project.id), [mode, runtimeProjects, savedProjects]);
+  const currentEffective = current.data?.effectivePayload || current.data?.payload || {};
+  const availableProjectIDs = useMemo(() => mode === "saved" ? savedProjects : runtimeProjectIDs(runtimeProjects, currentEffective), [currentEffective, mode, runtimeProjects, savedProjects]);
   const projectOptions = availableProjectIDs.map((value) => ({ value, label: value }));
   const upstreamOptions = mode === "saved"
     ? savedRows.filter((row) => row.projectId === projectID).map((row) => ({ value: row.id, label: row.id }))
     : [...new Set(runtimeProjects.find((project) => project.id === projectID)?.networks.flatMap((network) => Array.isArray(network.upstreams) ? network.upstreams.map((upstream) => upstream.id) : []) || [])].map((value) => ({ value, label: value }));
   const requestURL = buildPublicRPCUrl(publicBaseURL, projectID, networkID);
-  const currentEffective = current.data?.effectivePayload || current.data?.payload || {};
   const detectedBaseURL = typeof window === "undefined" ? `http://127.0.0.1:${effectiveRPCPort(currentEffective)}` : `${window.location.protocol}//${window.location.hostname}:${effectiveRPCPort(currentEffective)}`;
   const testing = savedTest.isPending || runtimeTest.isPending;
+  const activeTarget = targets.data?.find((target) => target.id === activeTargetID);
   const commands = useMemo(() => {
     if (!requestURL || !method.trim()) return null;
     try { return buildRPCCommands(requestURL, method, parseRPCParams(paramsText), secretForCopiedCommand(projectSecret, includeSecretInCommands)); }
@@ -228,6 +241,13 @@ export function RpcDebugPage() {
       <div><div className="eyebrow">请求验证</div><h1>RPC 调试</h1><p className="muted">测试已保存节点，或通过运行中的 eRPC 验证完整路由。</p></div>
       <Segmented<DebugMode> value={mode} disabled={testing} options={[{ value: "runtime", label: "运行中 eRPC" }, { value: "saved", label: "已保存节点" }]} onChange={(value) => { invalidateResult(); setMode(value); }} />
     </div>
+    {mode === "runtime" && activeTarget?.status === "unauthorized" && <Alert
+      type="warning"
+      showIcon
+      message="eRPC 管理接口返回 401"
+      description="当前运行版本没有可用的 admin.auth 管理认证，因此拓扑、健康和上游列表暂时不可见。项目与网络仍可直接测试；项目访问密钥不是 Admin 管理密钥。"
+      className="mb-6"
+    />}
 
     <div className="grid grid-cols-1 gap-9 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.8fr)]">
       <Form<DebugForm>

@@ -277,13 +277,13 @@ func (s *Server) respondRPCTest(w http.ResponseWriter, value erpc.TestResult, er
 func publicError(err error) string {
 	var rpcErr *erpc.RPCError
 	if errors.As(err, &rpcErr) {
-		return fmt.Sprintf("eRPC admin rejected the request (code %d)", rpcErr.Code)
+		return fmt.Sprintf("eRPC 管理接口拒绝请求（错误码 %d）", rpcErr.Code)
 	}
 	var httpErr *erpc.HTTPError
 	if errors.As(err, &httpErr) {
-		return fmt.Sprintf("eRPC admin returned HTTP status %d", httpErr.Status)
+		return fmt.Sprintf("eRPC 管理接口返回 HTTP 状态 %d", httpErr.Status)
 	}
-	return "eRPC admin request failed"
+	return "eRPC 管理接口请求失败"
 }
 
 func splitPath(path string) []string {
@@ -297,7 +297,7 @@ func splitPath(path string) []string {
 func (s *Server) writeCORS(w http.ResponseWriter) {
 	w.Header().Set("access-control-allow-origin", "*")
 	w.Header().Set("access-control-allow-headers", "content-type")
-	w.Header().Set("access-control-allow-methods", "GET,POST,OPTIONS")
+	w.Header().Set("access-control-allow-methods", "GET,POST,DELETE,OPTIONS")
 }
 
 func (s *Server) writeJSON(w http.ResponseWriter, status int, value any) {

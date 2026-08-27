@@ -11,7 +11,10 @@ import (
 	"github.com/erpc/admin/internal/configdoc"
 )
 
-var ErrConflict = errors.New("configuration revision conflict")
+var (
+	ErrConflict = errors.New("configuration revision conflict")
+	ErrLatest   = errors.New("latest configuration revision cannot be deleted")
+)
 
 type Revision struct {
 	Revision    int64           `json:"revision"`
@@ -84,6 +87,46 @@ func (s *Store) List(ctx context.Context, limit int) ([]Revision, error) {
 		return nil, fmt.Errorf("iterate configuration revisions: %w", err)
 	}
 	return revisions, nil
+}
+
+// Delete removes a historical revision while keeping the latest revision intact.
+// The table lock makes the latest check and delete one atomic operation with
+// revision creation, so a concurrent save cannot make the current revision
+// disappear.
+func (s *Store) Delete(ctx context.Context, revision int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin configuration revision deletion: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, "LOCK TABLE config_revisions IN EXCLUSIVE MODE"); err != nil {
+		return fmt.Errorf("lock configuration revisions: %w", err)
+	}
+	var latest int64
+	if err := tx.QueryRowContext(ctx, "SELECT COALESCE(MAX(revision), 0) FROM config_revisions").Scan(&latest); err != nil {
+		return fmt.Errorf("query latest configuration revision: %w", err)
+	}
+	if latest == 0 {
+		return sql.ErrNoRows
+	}
+	if revision == latest {
+		return ErrLatest
+	}
+	result, err := tx.ExecContext(ctx, "DELETE FROM config_revisions WHERE revision = $1", revision)
+	if err != nil {
+		return fmt.Errorf("delete configuration revision: %w", err)
+	}
+	deleted, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("check deleted configuration revision: %w", err)
+	}
+	if deleted == 0 {
+		return sql.ErrNoRows
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit configuration revision deletion: %w", err)
+	}
+	return nil
 }
 
 type scanner interface {

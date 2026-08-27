@@ -12,11 +12,26 @@ import (
 
 	adminauth "github.com/erpc/admin/internal/auth"
 	"github.com/erpc/admin/internal/config"
+	"github.com/erpc/admin/internal/erpc"
 	"github.com/erpc/admin/internal/registry"
 )
 
+func TestPublicErrorUsesChineseMessages(t *testing.T) {
+	if got := publicError(&erpc.HTTPError{Status: http.StatusUnauthorized}); got != "eRPC 管理接口返回 HTTP 状态 401" {
+		t.Fatalf("HTTP error = %q", got)
+	}
+	if got := publicError(&erpc.RPCError{Code: -32000}); got != "eRPC 管理接口拒绝请求（错误码 -32000）" {
+		t.Fatalf("RPC error = %q", got)
+	}
+}
+
 func TestServerAccountSetupLoginAndProtection(t *testing.T) {
 	handler := newTestServer(t)
+	options := request(t, handler, http.MethodOptions, "/api/config/revisions/2", nil, nil)
+	assertStatus(t, options, http.StatusNoContent)
+	if got := options.Header().Get("access-control-allow-methods"); got != "GET,POST,DELETE,OPTIONS" {
+		t.Fatalf("CORS methods = %q", got)
+	}
 
 	status := request(t, handler, http.MethodGet, "/api/auth/status", nil, nil)
 	assertStatus(t, status, http.StatusOK)

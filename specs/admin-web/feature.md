@@ -157,6 +157,9 @@ Stopping leaves both revision numbers unchanged. The UI reports one of:
 
 Revisions never move backward. Restoring an old revision validates its document
 and inserts a new latest revision. The operator then explicitly restarts eRPC.
+Historical revisions can be deleted after confirmation. The latest revision and
+the revision referenced by the runtime record are protected so deletion cannot
+leave the managed process or its foreign-key state without a configuration.
 
 ## Process ownership
 
@@ -295,6 +298,7 @@ write surface:
 | `GET /api/config/revisions` | List revision metadata |
 | `GET /api/config/revisions/{revision}` | Read one full revision |
 | `POST /api/config/revisions/{revision}/restore` | Copy an old revision into a new latest revision |
+| `DELETE /api/config/revisions/{revision}` | Delete a historical revision that is not the latest or runtime-referenced revision |
 | `POST /api/config/upstreams/test` | Test one static HTTP(S) upstream from an exact saved revision with its server-side `jsonRpc.headers` |
 | `POST /api/targets/{targetId}/rpc-test` | Test an open network/method through a running eRPC target with an optional one-request project secret |
 
@@ -329,3 +333,8 @@ endpoints would duplicate the same revision logic and are intentionally omitted.
 13. Node health exposes EVM polling, selection evaluation, score-window, and
     SVM debounce timing per project without changing eRPC core configuration
     semantics.
+14. Provider-only projects remain testable before their lazy network taxonomy is
+    initialized, and the UI explains an eRPC Admin 401 without confusing it
+    with an upstream RPC credential failure.
+15. Operators can delete historical revisions with confirmation; the latest
+    and runtime-referenced revisions are rejected without consuming data.

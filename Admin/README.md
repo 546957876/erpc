@@ -44,4 +44,6 @@ YAML，用户不需要编写、粘贴或理解 YAML。
 - `POST /api/config/upstreams/test`：从指定配置版本读取静态上游的 HTTP/HTTPS 地址及 `jsonRpc.headers` 并直连测试；字段可继承 `upstreamDefaults`，环境变量按 Admin 进程环境展开，不要求重启 eRPC。
 - `POST /api/targets/{targetId}/rpc-test`：通过运行中的 eRPC 测试网络，可选定向到一个上游，并请求跳过缓存读取；项目启用 Secret 认证时可提交仅用于本次请求的 `projectSecret`。
 
-浏览器不能提交任意目标 URL，也看不到已保存节点的静态认证头。Admin 管理密钥永远不会发送到项目或第三方上游。两条接口都要求有效的管理员登录会话。运行态的指定上游与跳过缓存仍服从项目的 `allowClientDirectives` 设置。响应只返回被测服务的 HTTP 状态、耗时、正文，以及 eRPC 的上游和缓存诊断头；连接错误不会回显包含密钥的 RPC 地址。
+配置版本页支持删除历史版本。最新版本和运行记录引用的版本会被保护，删除前必须确认；厂商 Provider 只有在首次请求对应网络时才会懒加载上游，因此 RPC 调试页会使用配置中的项目作为首次请求入口。
+
+浏览器不能提交任意目标 URL，也看不到已保存节点的静态认证头。Admin 管理密钥永远不会发送到项目或第三方上游。两条接口都要求有效的管理员登录会话。运行态的指定上游与跳过缓存仍服从项目的 `allowClientDirectives` 设置。若节点状态显示 401，请在“服务设置”填写 eRPC Admin 内部密钥；它与 Admin Web 登录账号密码分开，仅用于 Admin 调用 eRPC 的 `/admin` 接口。响应只返回被测服务的 HTTP 状态、耗时、正文，以及 eRPC 的上游和缓存诊断头；连接错误不会回显包含密钥的 RPC 地址。

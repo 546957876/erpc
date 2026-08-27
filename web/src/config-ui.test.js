@@ -8,6 +8,7 @@ const providerFields = readFileSync(new URL("./pages/ProviderFormFields.tsx", im
 const configFields = readFileSync(new URL("./config/ConfigFields.tsx", import.meta.url), "utf8");
 const app = readFileSync(new URL("./App.tsx", import.meta.url), "utf8");
 const rpcDebug = readFileSync(new URL("./pages/RpcDebug.tsx", import.meta.url), "utf8");
+const revisions = readFileSync(new URL("./pages/Revisions.tsx", import.meta.url), "utf8");
 
 describe("field-only configuration UI", () => {
   it("never asks the operator to edit or import YAML", () => {
@@ -40,6 +41,13 @@ describe("field-only configuration UI", () => {
     expect(settings).toMatch(/dirty \|\| revision < loadedRevision\.current/);
     expect(settings).toMatch(/baseRevision: loadedRevision\.current/);
     expect(settings).not.toMatch(/String\(payload\.logLevel\)\.toUpperCase\(\)/);
+  });
+
+  it("makes eRPC Admin internal authentication explicit and distinct from Web login", () => {
+    expect(settings).toMatch(/eRPC Admin 密钥标识/);
+    expect(settings).toMatch(/eRPC Admin 内部密钥/);
+    expect(settings).toMatch(/不是 Admin Web 登录账号/);
+    expect(settings).toMatch(/admin\.auth/);
   });
 
   it("explains upstream identity and accepts vendor-neutral RPC addresses", () => {
@@ -118,6 +126,8 @@ describe("field-only configuration UI", () => {
     expect(rpcDebug).toMatch(/curl\.exe/);
     expect(rpcDebug).toMatch(/命令中包含真实密钥/);
     expect(rpcDebug).toMatch(/requestSequence/);
+    expect(rpcDebug).toMatch(/runtimeProjectIDs/);
+    expect(rpcDebug).toMatch(/eRPC 管理接口返回 401/);
   });
 
   it("exposes editable health timing and one-click upstream probes", () => {
@@ -132,5 +142,13 @@ describe("field-only configuration UI", () => {
     expect(app).toMatch(/aria-label="测试 RPC"/);
     expect(upstreams).toMatch(/useSavedUpstreamTest/);
     expect(upstreams).toMatch(/aria-label="测试 RPC"/);
+  });
+
+  it("allows deleting historical configuration revisions with a confirmation", () => {
+    expect(revisions).toMatch(/useDeleteConfigRevision/);
+    expect(revisions).toMatch(/useRuntimeStatus/);
+    expect(revisions).toMatch(/DeleteOutlined/);
+    expect(revisions).toMatch(/最新版本和运行记录引用的版本不能删除/);
+    expect(revisions).toMatch(/row\.revision === runtimeRevision/);
   });
 });

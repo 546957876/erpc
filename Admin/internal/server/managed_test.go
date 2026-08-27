@@ -26,7 +26,11 @@ type fakeRevisionStore struct {
 }
 
 func (store *fakeRevisionStore) Create(_ context.Context, document configdoc.Document, createdBy string, baseRevision int64) (revisions.Revision, error) {
-	if int64(len(store.items)) != baseRevision {
+	current := int64(0)
+	if len(store.items) > 0 {
+		current = store.items[len(store.items)-1].Revision
+	}
+	if current != baseRevision {
 		return revisions.Revision{}, revisions.ErrConflict
 	}
 	revision := revisions.Revision{Revision: baseRevision + 1, Payload: document.Payload, ContentHash: document.Hash, CreatedBy: createdBy, CreatedAt: time.Now().UTC()}
@@ -42,14 +46,32 @@ func (store *fakeRevisionStore) Latest(context.Context) (revisions.Revision, err
 }
 
 func (store *fakeRevisionStore) Get(_ context.Context, revision int64) (revisions.Revision, error) {
-	if revision <= 0 || revision > int64(len(store.items)) {
-		return revisions.Revision{}, sql.ErrNoRows
+	for _, item := range store.items {
+		if item.Revision == revision {
+			return item, nil
+		}
 	}
-	return store.items[revision-1], nil
+	return revisions.Revision{}, sql.ErrNoRows
 }
 
 func (store *fakeRevisionStore) List(context.Context, int) ([]revisions.Revision, error) {
 	return append([]revisions.Revision(nil), store.items...), nil
+}
+
+func (store *fakeRevisionStore) Delete(_ context.Context, revision int64) error {
+	if len(store.items) == 0 {
+		return sql.ErrNoRows
+	}
+	if store.items[len(store.items)-1].Revision == revision {
+		return revisions.ErrLatest
+	}
+	for index, item := range store.items {
+		if item.Revision == revision {
+			store.items = append(store.items[:index], store.items[index+1:]...)
+			return nil
+		}
+	}
+	return sql.ErrNoRows
 }
 
 type fakeValidator struct {
@@ -75,10 +97,15 @@ func (validator fakeValidator) Dump(_ context.Context, document configdoc.Docume
 	return configdoc.Overlay(validator.dumpDocument, document)
 }
 
-type fakeRuntime struct{}
+type fakeRuntime struct {
+	status adminruntime.Status
+}
 
-func (fakeRuntime) Status(context.Context) (adminruntime.Status, error) {
-	return adminruntime.Status{State: adminruntime.StateStopped}, nil
+func (runtime fakeRuntime) Status(context.Context) (adminruntime.Status, error) {
+	if runtime.status.State == "" {
+		return adminruntime.Status{State: adminruntime.StateStopped}, nil
+	}
+	return runtime.status, nil
 }
 func (fakeRuntime) Start(context.Context) (adminruntime.Status, error) {
 	return adminruntime.Status{State: adminruntime.StateRunning}, nil
@@ -116,6 +143,33 @@ func TestManagedConfigRequiresValidationBeforeRevision(t *testing.T) {
 	assertStatus(t, invalid, http.StatusUnprocessableEntity)
 	if len(invalidStore.items) != 0 {
 		t.Fatal(errors.New("invalid configuration created a revision"))
+	}
+}
+
+func TestManagedRevisionDeleteProtectsRuntimeRevision(t *testing.T) {
+	reg, err := registry.New(config.RuntimeConfig{PollInterval: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts, err := adminauth.NewStore(filepath.Join(t.TempDir(), "administrator.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := &fakeRevisionStore{items: []revisions.Revision{
+		{Revision: 1, Payload: json.RawMessage(`{"projects":[]}`)},
+		{Revision: 2, Payload: json.RawMessage(`{"projects":[]}`)},
+	}}
+	handler := NewManaged(reg, accounts, adminauth.NewSessions(time.Hour), ManagedDependencies{
+		Revisions: store,
+		Validator: fakeValidator{valid: true},
+		Runtime:   fakeRuntime{status: adminruntime.Status{State: adminruntime.StateRunning, RunningRevision: 1}},
+	})
+	setup := request(t, handler, http.MethodPost, "/api/auth/setup", map[string]string{"username": "admin", "password": "correct-horse"}, nil)
+	assertStatus(t, setup, http.StatusCreated)
+	response := request(t, handler, http.MethodDelete, "/api/config/revisions/1", nil, setup.Result().Cookies()[0])
+	assertStatus(t, response, http.StatusConflict)
+	if len(store.items) != 2 {
+		t.Fatalf("runtime revision was deleted: %#v", store.items)
 	}
 }
 

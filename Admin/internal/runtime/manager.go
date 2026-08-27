@@ -299,10 +299,10 @@ func managedTarget(document configdoc.Document) (string, string, bool) {
 	if err := json.Unmarshal(document.Payload, &payload); err != nil {
 		return "", "", false
 	}
-	admin, ok := payload["admin"].(map[string]any)
-	if !ok {
-		return "", "", false
-	}
+	// The managed eRPC configuration may omit the admin block entirely. The
+	// admin service still needs a target in that case so the UI can surface the
+	// actual unauthorized response instead of showing an empty instance list.
+	admin, _ := payload["admin"].(map[string]any)
 	server, _ := payload["server"].(map[string]any)
 	host, _ := server["httpHostV4"].(string)
 	if host == "" || host == "0.0.0.0" {

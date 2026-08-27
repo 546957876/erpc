@@ -86,3 +86,33 @@ func TestManagedTargetReadsServerAndAdminSecret(t *testing.T) {
 		t.Fatalf("baseURL=%q token=%q ok=%v", baseURL, token, ok)
 	}
 }
+
+func TestManagedTargetDefaultsWhenAdminIsOmitted(t *testing.T) {
+	document, err := configdoc.ParseJSON([]byte(`{"projects":[{"id":"main"}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseURL, token, ok := managedTarget(document)
+	if !ok || baseURL != "http://127.0.0.1:4000" || token != "" {
+		t.Fatalf("baseURL=%q token=%q ok=%v", baseURL, token, ok)
+	}
+}
+
+func TestUpdateManagedTargetRegistersWhenAdminIsOmitted(t *testing.T) {
+	document, err := configdoc.ParseJSON([]byte(`{"projects":[{"id":"main"}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var targetID, baseURL, token string
+	manager := &Manager{}
+	manager.SetTargetUpdater(func(id, url, secret string) error {
+		targetID, baseURL, token = id, url, secret
+		return nil
+	}, nil)
+	if err := manager.updateManagedTarget(document); err != nil {
+		t.Fatal(err)
+	}
+	if targetID != "local-erpc" || baseURL != "http://127.0.0.1:4000" || token != "" {
+		t.Fatalf("targetID=%q baseURL=%q token=%q", targetID, baseURL, token)
+	}
+}

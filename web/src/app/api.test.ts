@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
+import { deleteConfigRevision, normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -66,5 +66,18 @@ describe("RPC test requests", () => {
     expect(path).toBe("/api/targets/local%20erpc%2F%E4%B8%9C/rpc-test");
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual(input);
+  });
+});
+
+describe("configuration revisions", () => {
+  it("deletes a selected historical revision", async () => {
+    const fetchMock = mockResponse({ revision: 7, deleted: true });
+
+    await expect(deleteConfigRevision(7)).resolves.toEqual({ revision: 7, deleted: true });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(path).toBe("/api/config/revisions/7");
+    expect(init.method).toBe("DELETE");
   });
 });

@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -163,6 +165,14 @@ func TestManagedConfigCRUDManyUpstreamsAndRestore(t *testing.T) {
 	if len(store.items) != 4 {
 		t.Fatalf("stale write consumed a revision: %d", len(store.items))
 	}
+
+	deletedRevision := request(t, handler, http.MethodDelete, "/api/config/revisions/2", nil, cookie)
+	assertStatus(t, deletedRevision, http.StatusOK)
+	if _, err := store.Get(context.Background(), 2); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("deleted revision still exists: %v", err)
+	}
+	latestDelete := request(t, handler, http.MethodDelete, "/api/config/revisions/4", nil, cookie)
+	assertStatus(t, latestDelete, http.StatusConflict)
 }
 
 func newCRUDManagedHandler(t *testing.T, store revisionStore, validator configValidator) (http.Handler, *http.Cookie) {

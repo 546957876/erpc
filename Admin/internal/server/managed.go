@@ -23,6 +23,7 @@ type revisionStore interface {
 	Latest(context.Context) (revisions.Revision, error)
 	Get(context.Context, int64) (revisions.Revision, error)
 	List(context.Context, int) ([]revisions.Revision, error)
+	Delete(context.Context, int64) error
 }
 
 type configValidator interface {
@@ -54,6 +55,7 @@ var (
 	errSavedTargetNotFound  = errors.New("saved upstream target not found")
 	errSavedTargetAmbiguous = errors.New("saved upstream target is ambiguous")
 	errSavedEndpointInvalid = errors.New("saved upstream endpoint is invalid")
+	errRevisionRunning      = errors.New("运行记录引用的配置版本不能删除")
 )
 
 type savedUpstreamTestInput struct {
@@ -297,6 +299,31 @@ func (s *Server) handleRevision(w http.ResponseWriter, r *http.Request, suffix s
 	id, err := strconv.ParseInt(idText, 10, 64)
 	if err != nil || id <= 0 {
 		s.writeError(w, http.StatusBadRequest, "配置版本号无效")
+		return
+	}
+	if !restore && r.Method == http.MethodDelete {
+		if s.managed.Runtime != nil {
+			status, statusErr := s.managed.Runtime.Status(r.Context())
+			if statusErr != nil {
+				s.writeError(w, http.StatusInternalServerError, "无法读取 eRPC 运行状态")
+				return
+			}
+			if status.RunningRevision == id {
+				s.writeError(w, http.StatusConflict, errRevisionRunning.Error())
+				return
+			}
+		}
+		err := s.managed.Revisions.Delete(r.Context(), id)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			s.writeError(w, http.StatusNotFound, "配置版本不存在")
+		case errors.Is(err, revisions.ErrLatest):
+			s.writeError(w, http.StatusConflict, "最新配置版本不能删除")
+		case err != nil:
+			s.writeError(w, http.StatusInternalServerError, "无法删除配置版本")
+		default:
+			s.writeJSON(w, http.StatusOK, map[string]any{"revision": id, "deleted": true})
+		}
 		return
 	}
 	source, err := s.managed.Revisions.Get(r.Context(), id)

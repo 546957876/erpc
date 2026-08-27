@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RPC_NETWORK_PRESETS, buildPublicRPCUrl, buildRPCCommands, effectiveRPCPort, formatRPCBody, parseRPCParams, rpcResultSucceeded, savedRequestIsCurrent, savedResultForRevision, savedUpstreamRows, secretForCopiedCommand } from "./RpcDebug";
+import { RPC_NETWORK_PRESETS, buildPublicRPCUrl, buildRPCCommands, effectiveRPCPort, formatRPCBody, parseRPCParams, rpcResultSucceeded, runtimeProjectIDs, savedRequestIsCurrent, savedResultForRevision, savedUpstreamRows, secretForCopiedCommand } from "./RpcDebug";
 
 describe("RPC debug helpers", () => {
   it("provides convenience presets without closing the network input", () => {
@@ -9,6 +9,11 @@ describe("RPC debug helpers", () => {
       "evm:4663",
       "svm:mainnet-beta",
     ]);
+  });
+
+  it("keeps configured projects usable before provider taxonomy is initialized", () => {
+    expect(runtimeProjectIDs([], { projects: [{ id: "main" }, { id: "backup" }] })).toEqual(["main", "backup"]);
+    expect(runtimeProjectIDs([{ id: "main", networks: [] }], { projects: [{ id: "main" }, { id: "backup" }] })).toEqual(["main", "backup"]);
   });
 
   it("accepts empty, array, and object params", () => {

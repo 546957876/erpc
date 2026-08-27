@@ -35,6 +35,7 @@ export type ConfigRevision = {
   createdBy?: string;
   createdAt?: string;
 };
+export type ConfigRevisionDeletion = { revision: number; deleted: boolean };
 export type ValidationResult = { valid: boolean; errors: string[]; warnings: string[]; notices: string[]; report?: unknown };
 export type SavedUpstreamTestRequest = { revision: number; projectId: string; upstreamId: string; method: string; params: unknown };
 export type TargetRpcTestRequest = { projectId: string; networkId: string; upstreamId?: string; projectSecret?: string; method: string; params: unknown };
@@ -158,5 +159,20 @@ export function useRestoreConfig() {
   return useMutation({
     mutationFn: (revision: number) => apiRequest<ConfigRevision>(`/api/config/revisions/${revision}/restore`, { method: "POST" }),
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["config"] }); void queryClient.invalidateQueries({ queryKey: ["runtime"] }); },
+  });
+}
+
+export function deleteConfigRevision(revision: number): Promise<ConfigRevisionDeletion> {
+  return apiRequest<ConfigRevisionDeletion>(`/api/config/revisions/${revision}`, { method: "DELETE" });
+}
+
+export function useDeleteConfigRevision() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteConfigRevision,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["config"] });
+      void queryClient.invalidateQueries({ queryKey: ["runtime"] });
+    },
   });
 }
