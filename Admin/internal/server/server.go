@@ -253,7 +253,7 @@ func (s *Server) respondRPC(w http.ResponseWriter, value any, err error) {
 	if err != nil {
 		status := http.StatusBadGateway
 		var httpErr *erpc.HTTPError
-		if errors.As(err, &httpErr) && httpErr.Status == http.StatusUnauthorized {
+		if (errors.As(err, &httpErr) && httpErr.Status == http.StatusUnauthorized) || erpc.IsAdminAuthNotConfigured(err) {
 			status = http.StatusUnauthorized
 		}
 		s.writeError(w, status, publicError(err))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RPC_NETWORK_PRESETS, buildPublicRPCUrl, buildRPCCommands, effectiveRPCPort, formatRPCBody, parseRPCParams, rpcResultSucceeded, runtimeProjectIDs, runtimeUpstreamIDs, savedRequestIsCurrent, savedResultForRevision, savedUpstreamRows, secretForCopiedCommand } from "./RpcDebug";
+import { RPC_NETWORK_PRESETS, buildPublicRPCUrl, buildRPCCommands, detectPublicRPCBaseURL, effectiveRPCPort, effectiveRPCScheme, formatRPCBody, parseRPCParams, rpcResultSucceeded, runtimeProjectIDs, runtimeUpstreamIDs, savedRequestIsCurrent, savedResultForRevision, savedUpstreamRows, secretForCopiedCommand } from "./RpcDebug";
 
 describe("RPC debug helpers", () => {
   it("provides convenience presets without closing the network input", () => {
@@ -23,6 +23,7 @@ describe("RPC debug helpers", () => {
         upstreams: [{ id: "static-node", endpoint: "https://rpc.example.test" }],
         providers: [
           { id: "alchemy-main", vendor: "alchemy", upstreamIdTemplate: "<PROVIDER>-<NETWORK>" },
+          { vendor: "infura", upstreamIdTemplate: "<PROVIDER>-<NETWORK>" },
           { id: "eth-only", vendor: "repository", onlyNetworks: ["evm:1"], upstreamIdTemplate: "<VENDOR>-<EVM_CHAIN_ID>" },
           { id: "ignored", vendor: "repository", ignoreNetworks: ["evm:56"], upstreamIdTemplate: "<PROVIDER>-<NETWORK>" },
         ],
@@ -32,10 +33,12 @@ describe("RPC debug helpers", () => {
     expect(runtimeUpstreamIDs([], payload, "main", "evm:56")).toEqual([
       "static-node",
       "alchemy-main-evm:56",
+      "infura-evm:56",
     ]);
     expect(runtimeUpstreamIDs([], payload, "main", "evm:1")).toEqual([
       "static-node",
       "alchemy-main-evm:1",
+      "infura-evm:1",
       "repository-1",
       "ignored-evm:1",
     ]);
@@ -68,6 +71,13 @@ describe("RPC debug helpers", () => {
     expect(buildPublicRPCUrl("http://127.0.0.1:4000/", "main", "evm:56")).toBe("http://127.0.0.1:4000/main/evm/56");
     expect(buildPublicRPCUrl("https://rpc.example", "project one", "future:network:v2")).toBe("https://rpc.example/project%20one/future/network%3Av2");
     expect(buildPublicRPCUrl("https://rpc.example", "main", "unknown")).toBe("");
+  });
+
+  it("uses the selected eRPC target and its TLS setting for the public URL", () => {
+    expect(effectiveRPCScheme({ server: { tls: { enabled: false } } })).toBe("http");
+    expect(effectiveRPCScheme({ server: { tls: { enabled: true } } })).toBe("https");
+    expect(detectPublicRPCBaseURL("https://rpc.example:4400/admin", {}, { hostname: "admin.example" })).toBe("https://rpc.example:4400");
+    expect(detectPublicRPCBaseURL(undefined, { server: { httpPortV4: 4100, tls: { enabled: true } } }, { hostname: "admin.example" })).toBe("https://admin.example:4100");
   });
 
   it("reads the effective eRPC port and builds paste-ready commands", () => {

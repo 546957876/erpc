@@ -334,7 +334,8 @@ endpoints would duplicate the same revision logic and are intentionally omitted.
     SVM debounce timing per project without changing eRPC core configuration
     semantics.
 14. Provider-only projects remain testable before their lazy network taxonomy is
-    initialized, and the UI explains an eRPC Admin 401 without confusing it
-    with an upstream RPC credential failure.
+    initialized, and the UI explains an eRPC Admin 401 (including eRPC's
+    HTTP 200 / JSON-RPC `-32603` response when `admin.auth` is absent) without
+    confusing it with an upstream RPC credential failure.
 15. Operators can delete historical revisions with confirmation; the latest
     and runtime-referenced revisions are rejected without consuming data.

@@ -109,6 +109,8 @@ describe("field-only configuration UI", () => {
   it("provides Chinese node health and RPC debug routes while preserving old links", () => {
     expect(app).toMatch(/to="\/health">节点健康/);
     expect(app).toMatch(/to="\/rpc-debug">RPC 调试/);
+    expect(app).toMatch(/eRPC 管理接口未授权/);
+    expect(app).toMatch(/前往服务设置/);
     expect(app).toMatch(/path="\/topology\/:targetId" element=\{<LegacyTopologyRedirect/);
     expect(app).toMatch(/path="\/targets\/\*" element=\{<Navigate to="\/health"/);
   });

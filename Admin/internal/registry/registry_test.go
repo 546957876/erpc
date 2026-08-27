@@ -43,6 +43,32 @@ func TestPollTransitionsFromHealthyToDegraded(t *testing.T) {
 	}
 }
 
+func TestPollMarksMissingAdminAuthAsUnauthorized(t *testing.T) {
+	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"jsonrpc": "2.0",
+			"id":      1,
+			"error": map[string]any{
+				"code":    -32603,
+				"message": "admin auth not configured",
+			},
+		})
+	}))
+	defer httpServer.Close()
+
+	reg, err := New(config.RuntimeConfig{PollInterval: time.Second, Targets: []config.ResolvedTarget{{ID: "one", BaseURL: httpServer.URL, Token: "secret"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := reg.PollOnce(context.Background(), "one"); err == nil {
+		t.Fatal("expected admin authentication error")
+	}
+	snapshot, _ := reg.Snapshot("one")
+	if snapshot.Status != Unauthorized {
+		t.Fatalf("expected unauthorized snapshot, got %#v", snapshot)
+	}
+}
+
 func TestSetManagedTarget(t *testing.T) {
 	httpServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": 1, "result": map[string]any{"projects": []any{}}})

@@ -343,7 +343,13 @@ function TargetPage({ fallback }: { fallback?: TargetSnapshot }) {
   }
 
   if (taxonomy.isLoading && !taxonomy.data) return <div className="center-state"><Spin size="large" /></div>;
-  if (taxonomy.isError) return <Result status="error" title="无法加载拓扑" subTitle={taxonomy.error.message} />;
+  if (taxonomy.isError) {
+    const adminAuthUnavailable = snapshot?.status === "unauthorized" || taxonomy.error.message.includes("401") || taxonomy.error.message.includes("错误码 -32603");
+    if (adminAuthUnavailable) {
+      return <Result status="warning" title="eRPC 管理接口未授权" subTitle="请在“服务设置”启用 eRPC Admin 接口并配置内部密钥，保存新版本后重启 eRPC。Admin Web 登录账号与该内部密钥是两套凭据。" extra={<Button type="primary" onClick={() => navigate("/settings")}>前往服务设置</Button>} />;
+    }
+    return <Result status="error" title="无法加载拓扑" subTitle={taxonomy.error.message} />;
+  }
   const counts = countTopology(projects);
   const columns: ColumnsType<typeof rows[number]> = [
     { title: "上游", dataIndex: ["upstream", "id"], render: (_value, row) => {

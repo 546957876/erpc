@@ -30,6 +30,13 @@ func (e *RPCError) Error() string {
 	return fmt.Sprintf("eRPC admin error %d: %s", e.Code, e.Message)
 }
 
+// IsAdminAuthNotConfigured identifies eRPC's explicit response for an Admin
+// endpoint that has no internal authentication strategy configured.
+func IsAdminAuthNotConfigured(err error) bool {
+	var rpcErr *RPCError
+	return errors.As(err, &rpcErr) && rpcErr.Code == -32603 && strings.EqualFold(strings.TrimSpace(rpcErr.Message), "admin auth not configured")
+}
+
 type HTTPError struct{ Status int }
 
 func (e *HTTPError) Error() string { return fmt.Sprintf("eRPC admin HTTP status %d", e.Status) }

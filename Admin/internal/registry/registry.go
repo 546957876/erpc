@@ -215,7 +215,7 @@ func (r *Registry) PollOnce(ctx context.Context, id string) error {
 	target.snap.FailureCount++
 	target.snap.LastError = safeError(err)
 	var httpErr *erpc.HTTPError
-	if errors.As(err, &httpErr) && httpErr.Status == 401 {
+	if (errors.As(err, &httpErr) && httpErr.Status == 401) || erpc.IsAdminAuthNotConfigured(err) {
 		target.snap.Status = Unauthorized
 	} else if target.snap.LastSuccessAt != nil {
 		target.snap.Status = Degraded

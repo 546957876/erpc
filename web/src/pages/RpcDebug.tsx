@@ -77,6 +77,28 @@ export function effectiveRPCPort(payload: Record<string, unknown>): number {
   return Number.isInteger(value) && value > 0 && value <= 65535 ? value : 4000;
 }
 
+export function effectiveRPCScheme(payload: ConfigPayload): "http" | "https" {
+  return record(record(record(payload).server).tls).enabled === true ? "https" : "http";
+}
+
+export function detectPublicRPCBaseURL(targetBaseURL: string | undefined, payload: ConfigPayload, location: { hostname?: string } = typeof window === "undefined" ? {} : window.location): string {
+  if (targetBaseURL?.trim()) {
+    try {
+      const parsed = new URL(targetBaseURL.trim());
+      if ((parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.hostname) {
+        parsed.pathname = parsed.pathname.replace(/\/admin\/?$/, "").replace(/\/+$/, "");
+        parsed.search = "";
+        parsed.hash = "";
+        return parsed.toString().replace(/\/$/, "");
+      }
+    } catch {
+      // Fall through to the local configuration-derived address.
+    }
+  }
+  const hostname = location.hostname?.trim() || "127.0.0.1";
+  return `${effectiveRPCScheme(payload)}://${hostname}:${effectiveRPCPort(payload)}`;
+}
+
 export function buildRPCCommands(url: string, method: string, params: unknown[] | Record<string, unknown>, projectSecret = "") {
   const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method, params });
   const quotedURL = url.replaceAll("'", "''");
@@ -116,7 +138,7 @@ export function runtimeUpstreamIDs(taxonomyProjects: Project[], payload: ConfigP
   const generated = networkID.trim()
     ? listProviders(payload)
       .filter((row) => row.projectId === projectID && providerAllowsNetwork(row.networkMode, row.networks, networkID))
-      .map((row) => renderProviderUpstreamID(String(row.raw.upstreamIdTemplate || "<PROVIDER>-<NETWORK>"), row.vendor, row.id, networkID))
+      .map((row) => renderProviderUpstreamID(String(row.raw.upstreamIdTemplate || "<PROVIDER>-<NETWORK>"), row.vendor, row.id || row.vendor, networkID))
     : [];
   return [...new Set([...runtime, ...saved, ...generated].filter(Boolean))];
 }
@@ -146,7 +168,7 @@ export function RpcDebugPage() {
   const runtimeTest = useRuntimeRPCTest(activeTargetID);
   const [result, setResult] = useState<RpcTestResult | null>(null);
   const [error, setError] = useState("");
-  const [publicBaseURL, setPublicBaseURL] = useState(() => typeof window === "undefined" ? "http://127.0.0.1:4000" : `${window.location.protocol}//${window.location.hostname}:4000`);
+  const [publicBaseURL, setPublicBaseURL] = useState(() => detectPublicRPCBaseURL(undefined, {}));
   const [publicBaseEdited, setPublicBaseEdited] = useState(false);
   const [includeSecretInCommands, setIncludeSecretInCommands] = useState(false);
   const [form] = Form.useForm<DebugForm>();
@@ -172,10 +194,10 @@ export function RpcDebugPage() {
   const upstreamOptions = mode === "saved"
     ? savedRows.filter((row) => row.projectId === projectID).map((row) => ({ value: row.id, label: row.id }))
     : runtimeUpstreamIDs(runtimeProjects, currentEffective, projectID, networkID).map((value) => ({ value, label: value }));
-  const requestURL = buildPublicRPCUrl(publicBaseURL, projectID, networkID);
-  const detectedBaseURL = typeof window === "undefined" ? `http://127.0.0.1:${effectiveRPCPort(currentEffective)}` : `${window.location.protocol}//${window.location.hostname}:${effectiveRPCPort(currentEffective)}`;
-  const testing = savedTest.isPending || runtimeTest.isPending;
   const activeTarget = targets.data?.find((target) => target.id === activeTargetID);
+  const requestURL = buildPublicRPCUrl(publicBaseURL, projectID, networkID);
+  const detectedBaseURL = detectPublicRPCBaseURL(activeTarget?.baseUrl, currentEffective);
+  const testing = savedTest.isPending || runtimeTest.isPending;
   const commands = useMemo(() => {
     if (!requestURL || !method.trim()) return null;
     try { return buildRPCCommands(requestURL, method, parseRPCParams(paramsText), secretForCopiedCommand(projectSecret, includeSecretInCommands)); }

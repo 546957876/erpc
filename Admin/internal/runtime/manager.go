@@ -315,8 +315,11 @@ func managedTarget(document configdoc.Document) (string, string, bool) {
 		port = int(number)
 	}
 	scheme := "http"
-	if server["tls"] != nil {
-		scheme = "https"
+	if tls, ok := server["tls"].(map[string]any); ok {
+		enabled, _ := tls["enabled"].(bool)
+		if enabled {
+			scheme = "https"
+		}
 	}
 	token := ""
 	if auth, ok := admin["auth"].(map[string]any); ok {

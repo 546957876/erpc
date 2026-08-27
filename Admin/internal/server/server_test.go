@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +23,17 @@ func TestPublicErrorUsesChineseMessages(t *testing.T) {
 	}
 	if got := publicError(&erpc.RPCError{Code: -32000}); got != "eRPC 管理接口拒绝请求（错误码 -32000）" {
 		t.Fatalf("RPC error = %q", got)
+	}
+}
+
+func TestRespondRPCMapsMissingAdminAuthToUnauthorized(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	(&Server{}).respondRPC(recorder, nil, &erpc.RPCError{Code: -32603, Message: "admin auth not configured"})
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusUnauthorized)
+	}
+	if !strings.Contains(recorder.Body.String(), "错误码 -32603") {
+		t.Fatalf("response = %s", recorder.Body.String())
 	}
 }
 

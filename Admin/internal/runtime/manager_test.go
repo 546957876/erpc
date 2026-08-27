@@ -87,6 +87,37 @@ func TestManagedTargetReadsServerAndAdminSecret(t *testing.T) {
 	}
 }
 
+func TestManagedTargetUsesTLSOnlyWhenEnabled(t *testing.T) {
+	tests := []struct {
+		name     string
+		document string
+		wantURL  string
+	}{
+		{
+			name:     "disabled",
+			document: `{"server":{"httpPortV4":4100,"tls":{"enabled":false}}}`,
+			wantURL:  "http://127.0.0.1:4100",
+		},
+		{
+			name:     "enabled",
+			document: `{"server":{"httpPortV4":4100,"tls":{"enabled":true}}}`,
+			wantURL:  "https://127.0.0.1:4100",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			document, err := configdoc.ParseJSON([]byte(tt.document))
+			if err != nil {
+				t.Fatal(err)
+			}
+			baseURL, token, ok := managedTarget(document)
+			if !ok || baseURL != tt.wantURL || token != "" {
+				t.Fatalf("baseURL=%q token=%q ok=%v", baseURL, token, ok)
+			}
+		})
+	}
+}
+
 func TestManagedTargetDefaultsWhenAdminIsOmitted(t *testing.T) {
 	document, err := configdoc.ParseJSON([]byte(`{"projects":[{"id":"main"}]}`))
 	if err != nil {
