@@ -37,6 +37,8 @@ func (s *Server) handleAlchemyAccounts(w http.ResponseWriter, r *http.Request, p
 		s.importAlchemyAccounts(w, r)
 	case path == base && r.Method == http.MethodGet:
 		s.listAlchemyAccounts(w, r)
+	case path == base+"/apply" && r.Method == http.MethodPost:
+		s.applyAlchemyAccount(w, r, base)
 	case strings.HasSuffix(path, "/apply"):
 		s.applyAlchemyAccount(w, r, base)
 	case strings.HasPrefix(path, base+"/"):
@@ -66,6 +68,10 @@ func (s *Server) applyAlchemyAccount(w http.ResponseWriter, r *http.Request, bas
 		return
 	}
 	suffix := strings.TrimPrefix(strings.TrimSuffix(r.URL.Path, "/"), base+"/")
+	if suffix == "apply" {
+		s.applyAlchemyBatch(w, r)
+		return
+	}
 	parts := strings.Split(suffix, "/")
 	if len(parts) != 2 || parts[1] != "apply" {
 		s.writeError(w, http.StatusBadRequest, "账号标识无效")
@@ -115,13 +121,87 @@ func (s *Server) applyAlchemyAccount(w http.ResponseWriter, r *http.Request, bas
 		}
 		input.Networks = networks
 	}
-	account, err := s.managed.AlchemyAccounts.Get(r.Context(), id)
-	if errors.Is(err, sql.ErrNoRows) {
-		s.writeError(w, http.StatusNotFound, "Alchemy 账号不存在")
+	s.applyAlchemyAccounts(w, r, []int64{id}, input.ProjectID, input.NetworkMode, input.Networks)
+}
+
+func (s *Server) applyAlchemyBatch(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		All         bool     `json:"all"`
+		AccountIDs  []int64  `json:"accountIds"`
+		ExcludeIDs  []int64  `json:"excludeIds"`
+		ProjectID   string   `json:"projectId"`
+		NetworkMode string   `json:"networkMode"`
+		Networks    []string `json:"networks"`
+	}
+	if err := s.decodeBody(r, &input); err != nil || strings.TrimSpace(input.ProjectID) == "" {
+		s.writeError(w, http.StatusBadRequest, "项目和账号选择无效")
 		return
 	}
-	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, "无法读取 Alchemy 账号")
+	ids := input.AccountIDs
+	if input.All {
+		excluded := make(map[int64]struct{}, len(input.ExcludeIDs))
+		for _, id := range input.ExcludeIDs {
+			excluded[id] = struct{}{}
+		}
+		ids = ids[:0]
+		for offset := 0; ; offset += 100 {
+			items, total, err := s.managed.AlchemyAccounts.List(r.Context(), 100, offset)
+			if err != nil {
+				s.writeError(w, http.StatusInternalServerError, "无法读取 Alchemy 账号")
+				return
+			}
+			for _, account := range items {
+				if _, skip := excluded[account.ID]; !skip {
+					ids = append(ids, account.ID)
+				}
+			}
+			if offset+len(items) >= total || len(items) == 0 {
+				break
+			}
+		}
+	}
+	if len(ids) == 0 {
+		s.writeError(w, http.StatusBadRequest, "请至少选择一个账号")
+		return
+	}
+	if input.NetworkMode == "" {
+		input.NetworkMode = "all"
+	}
+	if input.NetworkMode != "all" && input.NetworkMode != "only" && input.NetworkMode != "ignore" {
+		s.writeError(w, http.StatusBadRequest, "网络范围模式无效")
+		return
+	}
+	if input.NetworkMode != "all" && len(input.Networks) == 0 {
+		s.writeError(w, http.StatusBadRequest, "请至少选择一个网络")
+		return
+	}
+	s.applyAlchemyAccounts(w, r, ids, input.ProjectID, input.NetworkMode, input.Networks)
+}
+
+func (s *Server) applyAlchemyAccounts(w http.ResponseWriter, r *http.Request, ids []int64, projectID, networkMode string, networks []string) {
+	accounts := make([]alchemyaccounts.Account, 0, len(ids))
+	seenIDs := make(map[int64]struct{}, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			continue
+		}
+		if _, seen := seenIDs[id]; seen {
+			continue
+		}
+		seenIDs[id] = struct{}{}
+		account, err := s.managed.AlchemyAccounts.Get(r.Context(), id)
+		if errors.Is(err, sql.ErrNoRows) {
+			s.writeError(w, http.StatusNotFound, "Alchemy 账号不存在")
+			return
+		}
+		if err != nil {
+			s.writeError(w, http.StatusInternalServerError, "无法读取 Alchemy 账号")
+			return
+		}
+		accounts = append(accounts, account)
+	}
+	if len(accounts) == 0 {
+		s.writeError(w, http.StatusBadRequest, "请至少选择一个账号")
 		return
 	}
 	latest, err := s.managed.Revisions.Latest(r.Context())
@@ -146,7 +226,7 @@ func (s *Server) applyAlchemyAccount(w http.ResponseWriter, r *http.Request, bas
 	projectIndex := -1
 	for index, raw := range projects {
 		project, _ := raw.(map[string]any)
-		if project["id"] == input.ProjectID {
+		if project["id"] == projectID {
 			if projectIndex >= 0 {
 				s.writeError(w, http.StatusConflict, "项目标识重复，无法应用账号")
 				return
@@ -160,16 +240,19 @@ func (s *Server) applyAlchemyAccount(w http.ResponseWriter, r *http.Request, bas
 	}
 	project := projects[projectIndex].(map[string]any)
 	providers, _ := project["providers"].([]any)
-	provider := map[string]any{"id": account.ProviderID, "vendor": "alchemy", "upstreamIdTemplate": "<PROVIDER>-<NETWORK>", "settings": map[string]any{"apiKey": account.APIKey}}
-	if input.NetworkMode == "only" {
-		provider["onlyNetworks"] = input.Networks
-	} else if input.NetworkMode == "ignore" {
-		provider["ignoreNetworks"] = input.Networks
-	}
-	updated := false
-	for index, raw := range providers {
-		item, _ := raw.(map[string]any)
-		if item["id"] == account.ProviderID {
+	for _, account := range accounts {
+		provider := map[string]any{"id": account.ProviderID, "vendor": "alchemy", "upstreamIdTemplate": "<PROVIDER>-<NETWORK>", "settings": map[string]any{"apiKey": account.APIKey}}
+		if networkMode == "only" {
+			provider["onlyNetworks"] = networks
+		} else if networkMode == "ignore" {
+			provider["ignoreNetworks"] = networks
+		}
+		updated := false
+		for index, raw := range providers {
+			item, _ := raw.(map[string]any)
+			if item["id"] != account.ProviderID {
+				continue
+			}
 			preserved := make(map[string]any, len(item)+4)
 			for key, value := range item {
 				preserved[key] = value
@@ -196,9 +279,9 @@ func (s *Server) applyAlchemyAccount(w http.ResponseWriter, r *http.Request, bas
 			updated = true
 			break
 		}
-	}
-	if !updated {
-		providers = append(providers, provider)
+		if !updated {
+			providers = append(providers, provider)
+		}
 	}
 	project["providers"] = providers
 	projects[projectIndex] = project

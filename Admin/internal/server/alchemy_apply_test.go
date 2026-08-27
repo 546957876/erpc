@@ -51,6 +51,35 @@ func TestApplyAlchemyAccountRejectsUnknownProject(t *testing.T) {
 	}
 }
 
+func TestApplyAlchemyAccountsBatchCreatesOneRevision(t *testing.T) {
+	initial := mustDocument(t, `{"projects":[{"id":"main"}]}`)
+	revisionStore := &fakeRevisionStore{items: []revisions.Revision{{Revision: 1, Payload: initial.Payload, ContentHash: initial.Hash}}}
+	accountStore := &fakeAlchemyAccountStore{accounts: []alchemyaccounts.Account{
+		{ID: 1, ProviderID: "account-one", APIKey: "key-one"},
+		{ID: 2, ProviderID: "account-two", APIKey: "key-two"},
+		{ID: 3, ProviderID: "account-three", APIKey: "key-three"},
+	}}
+	handler, cookie := newAlchemyManagedHandler(t, revisionStore, accountStore)
+	response := request(t, handler, http.MethodPost, "/api/alchemy/accounts/apply", map[string]any{"all": true, "excludeIds": []int64{2}, "projectId": "main", "networkMode": "all"}, cookie)
+	assertStatus(t, response, http.StatusCreated)
+	if len(revisionStore.items) != 2 {
+		t.Fatalf("revision count = %d", len(revisionStore.items))
+	}
+	var root struct {
+		Projects []struct {
+			Providers []struct {
+				ID string `json:"id"`
+			} `json:"providers"`
+		} `json:"projects"`
+	}
+	if err := json.Unmarshal(revisionStore.items[1].Payload, &root); err != nil {
+		t.Fatal(err)
+	}
+	if len(root.Projects[0].Providers) != 2 || root.Projects[0].Providers[0].ID != "account-one" || root.Projects[0].Providers[1].ID != "account-three" {
+		t.Fatalf("providers = %#v", root.Projects[0].Providers)
+	}
+}
+
 func newAlchemyManagedHandler(t *testing.T, revisions *fakeRevisionStore, accounts *fakeAlchemyAccountStore) (http.Handler, *http.Cookie) {
 	t.Helper()
 	return newManagedWithDependencies(t, ManagedDependencies{Revisions: revisions, Validator: fakeValidator{valid: true}, Runtime: fakeRuntime{}, AlchemyAccounts: accounts})

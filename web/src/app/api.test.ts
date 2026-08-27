@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { applyAlchemyAccount, deleteConfigRevision, importAlchemyAccounts, normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
+import { applyAlchemyAccount, applyAlchemyAccounts, deleteConfigRevision, importAlchemyAccounts, normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -99,6 +99,15 @@ describe("Alchemy account API", () => {
     const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(path).toBe("/api/alchemy/accounts/9/apply");
     expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual(input);
+  });
+
+  it("posts a batch account selection once", async () => {
+    const fetchMock = mockResponse({ revision: 4 });
+    const input = { accountIds: [1, 3], projectId: "main", networkMode: "all" as const };
+    await expect(applyAlchemyAccounts(input)).resolves.toEqual({ revision: 4 });
+    const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(path).toBe("/api/alchemy/accounts/apply");
     expect(JSON.parse(String(init.body))).toEqual(input);
   });
 });

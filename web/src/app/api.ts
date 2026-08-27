@@ -204,6 +204,10 @@ export function applyAlchemyAccount(id: number, input: { projectId: string; netw
   return apiRequest<ConfigRevision>(`/api/alchemy/accounts/${id}/apply`, { method: "POST", body: JSON.stringify(input) });
 }
 
+export function applyAlchemyAccounts(input: { accountIds?: number[]; all?: boolean; excludeIds?: number[]; projectId: string; networkMode: "all" | "only" | "ignore"; networks?: string[] }): Promise<ConfigRevision> {
+  return apiRequest<ConfigRevision>("/api/alchemy/accounts/apply", { method: "POST", body: JSON.stringify(input) });
+}
+
 export function useAlchemyAccounts(limit = 20, offset = 0): UseQueryResult<AlchemyAccountList> {
   return useQuery({ queryKey: ["alchemy-accounts", limit, offset], queryFn: () => getAlchemyAccounts(limit, offset) });
 }
@@ -230,4 +234,9 @@ export function useDeleteAlchemyAccount() {
 export function useApplyAlchemyAccount() {
   const queryClient = useQueryClient();
   return useMutation({ mutationFn: ({ id, input }: { id: number; input: { projectId: string; networkMode: "all" | "only" | "ignore"; networks?: string[] } }) => applyAlchemyAccount(id, input), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["config"] }); void queryClient.invalidateQueries({ queryKey: ["runtime"] }); } });
+}
+
+export function useApplyAlchemyAccounts() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: applyAlchemyAccounts, onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["config"] }); void queryClient.invalidateQueries({ queryKey: ["runtime"] }); } });
 }
