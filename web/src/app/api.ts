@@ -43,6 +43,7 @@ export type RpcTestResult = { httpStatus: number; durationMs: number; body: stri
 export type AlchemyAccount = { id: number; email: string; name: string; providerId: string; apiKey: string; payload?: Record<string, unknown>; createdAt?: string; updatedAt?: string };
 export type AlchemyAccountList = { items: AlchemyAccount[]; total: number; limit: number; offset: number };
 export type AlchemyImportResult = { created: number; skipped: number; accounts: AlchemyAccount[] };
+export type AlchemyApplyResult = ConfigRevision & { applied: number; skipped: number };
 
 export function normalizeValidationResult(value: Partial<ValidationResult> | null | undefined): ValidationResult {
   return {
@@ -200,12 +201,16 @@ export function deleteAlchemyAccount(id: number): Promise<void> {
   return apiRequest<void>(`/api/alchemy/accounts/${id}`, { method: "DELETE" });
 }
 
+export function deleteAlchemyAccounts(input: { accountIds?: number[]; all?: boolean; excludeIds?: number[] }): Promise<{ deleted: number }> {
+  return apiRequest<{ deleted: number }>("/api/alchemy/accounts/batch-delete", { method: "POST", body: JSON.stringify(input) });
+}
+
 export function applyAlchemyAccount(id: number, input: { projectId: string; networkMode: "all" | "only" | "ignore"; networks?: string[] }): Promise<ConfigRevision> {
   return apiRequest<ConfigRevision>(`/api/alchemy/accounts/${id}/apply`, { method: "POST", body: JSON.stringify(input) });
 }
 
-export function applyAlchemyAccounts(input: { accountIds?: number[]; all?: boolean; excludeIds?: number[]; projectId: string; networkMode: "all" | "only" | "ignore"; networks?: string[] }): Promise<ConfigRevision> {
-  return apiRequest<ConfigRevision>("/api/alchemy/accounts/apply", { method: "POST", body: JSON.stringify(input) });
+export function applyAlchemyAccounts(input: { accountIds?: number[]; all?: boolean; excludeIds?: number[]; projectId: string; networkMode: "all" | "only" | "ignore"; networks?: string[] }): Promise<AlchemyApplyResult> {
+	return apiRequest<AlchemyApplyResult>("/api/alchemy/accounts/apply", { method: "POST", body: JSON.stringify(input) });
 }
 
 export function useAlchemyAccounts(limit = 20, offset = 0): UseQueryResult<AlchemyAccountList> {
@@ -229,6 +234,11 @@ export function useUpdateAlchemyAccount() {
 export function useDeleteAlchemyAccount() {
   const queryClient = useQueryClient();
   return useMutation({ mutationFn: deleteAlchemyAccount, onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["alchemy-accounts"] }); } });
+}
+
+export function useDeleteAlchemyAccounts() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: deleteAlchemyAccounts, onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["alchemy-accounts"] }); } });
 }
 
 export function useApplyAlchemyAccount() {

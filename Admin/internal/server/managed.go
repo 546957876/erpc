@@ -45,6 +45,7 @@ type alchemyAccountStore interface {
 	Get(context.Context, int64) (alchemyaccounts.Account, error)
 	Update(context.Context, int64, alchemyaccounts.Record) (alchemyaccounts.Account, error)
 	Delete(context.Context, int64) error
+	DeleteMany(context.Context, []int64) error
 }
 
 type ManagedDependencies struct {

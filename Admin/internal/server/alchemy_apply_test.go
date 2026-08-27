@@ -29,6 +29,10 @@ func TestApplyAlchemyAccountCreatesAndUpdatesProvider(t *testing.T) {
 
 	repeat := request(t, handler, http.MethodPost, "/api/alchemy/accounts/1/apply", map[string]any{"projectId": "main", "networkMode": "only", "networks": []string{"evm:56"}}, cookie)
 	assertStatus(t, repeat, http.StatusOK)
+	var repeatResult alchemyApplyResponse
+	if err := json.NewDecoder(repeat.Body).Decode(&repeatResult); err != nil || repeatResult.Applied != 0 || repeatResult.Skipped != 1 {
+		t.Fatalf("repeat result = %#v, err=%v", repeatResult, err)
+	}
 	if len(revisionStore.items) != 2 {
 		t.Fatalf("repeat apply created revision: %d", len(revisionStore.items))
 	}
@@ -62,6 +66,10 @@ func TestApplyAlchemyAccountsBatchCreatesOneRevision(t *testing.T) {
 	handler, cookie := newAlchemyManagedHandler(t, revisionStore, accountStore)
 	response := request(t, handler, http.MethodPost, "/api/alchemy/accounts/apply", map[string]any{"all": true, "excludeIds": []int64{2}, "projectId": "main", "networkMode": "all"}, cookie)
 	assertStatus(t, response, http.StatusCreated)
+	var result alchemyApplyResponse
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil || result.Applied != 2 || result.Skipped != 0 {
+		t.Fatalf("apply result = %#v, err=%v", result, err)
+	}
 	if len(revisionStore.items) != 2 {
 		t.Fatalf("revision count = %d", len(revisionStore.items))
 	}
@@ -77,6 +85,27 @@ func TestApplyAlchemyAccountsBatchCreatesOneRevision(t *testing.T) {
 	}
 	if len(root.Projects[0].Providers) != 2 || root.Projects[0].Providers[0].ID != "account-one" || root.Projects[0].Providers[1].ID != "account-three" {
 		t.Fatalf("providers = %#v", root.Projects[0].Providers)
+	}
+}
+
+func TestApplyAlchemyAccountsBatchSkipsExistingProvider(t *testing.T) {
+	initial := mustDocument(t, `{"projects":[{"id":"main","providers":[{"id":"account-one","vendor":"alchemy","upstreamIdTemplate":"<PROVIDER>-<NETWORK>","settings":{"apiKey":"key-one"}}]}]}`)
+	revisionStore := &fakeRevisionStore{items: []revisions.Revision{{Revision: 1, Payload: initial.Payload, ContentHash: initial.Hash}}}
+	accountStore := &fakeAlchemyAccountStore{accounts: []alchemyaccounts.Account{{ID: 1, ProviderID: "account-one", APIKey: "key-one"}, {ID: 2, ProviderID: "account-two", APIKey: "key-two"}}}
+	handler, cookie := newAlchemyManagedHandler(t, revisionStore, accountStore)
+	response := request(t, handler, http.MethodPost, "/api/alchemy/accounts/apply", map[string]any{"accountIds": []int64{1, 2}, "projectId": "main", "networkMode": "all"}, cookie)
+	assertStatus(t, response, http.StatusCreated)
+	var result alchemyApplyResponse
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil || result.Applied != 1 || result.Skipped != 1 {
+		t.Fatalf("apply result = %#v, err=%v", result, err)
+	}
+	var root map[string]any
+	if err := json.Unmarshal(revisionStore.items[1].Payload, &root); err != nil {
+		t.Fatal(err)
+	}
+	providers := root["projects"].([]any)[0].(map[string]any)["providers"].([]any)
+	if len(providers) != 2 {
+		t.Fatalf("duplicate provider added: %#v", providers)
 	}
 }
 

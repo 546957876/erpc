@@ -26,6 +26,12 @@ type alchemyAccountUpdateInput struct {
 	Payload    json.RawMessage `json:"payload"`
 }
 
+type alchemyApplyResponse struct {
+	revisions.Revision
+	Applied int `json:"applied"`
+	Skipped int `json:"skipped"`
+}
+
 func (s *Server) handleAlchemyAccounts(w http.ResponseWriter, r *http.Request, path string) {
 	if s.managed == nil || s.managed.AlchemyAccounts == nil {
 		s.writeError(w, http.StatusNotFound, "接口不存在")
@@ -39,6 +45,8 @@ func (s *Server) handleAlchemyAccounts(w http.ResponseWriter, r *http.Request, p
 		s.listAlchemyAccounts(w, r)
 	case path == base+"/apply" && r.Method == http.MethodPost:
 		s.applyAlchemyAccount(w, r, base)
+	case path == base+"/batch-delete" && r.Method == http.MethodPost:
+		s.deleteAlchemyBatch(w, r)
 	case strings.HasSuffix(path, "/apply"):
 		s.applyAlchemyAccount(w, r, base)
 	case strings.HasPrefix(path, base+"/"):
@@ -178,6 +186,91 @@ func (s *Server) applyAlchemyBatch(w http.ResponseWriter, r *http.Request) {
 	s.applyAlchemyAccounts(w, r, ids, input.ProjectID, input.NetworkMode, input.Networks)
 }
 
+func (s *Server) deleteAlchemyBatch(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		All        bool    `json:"all"`
+		AccountIDs []int64 `json:"accountIds"`
+		ExcludeIDs []int64 `json:"excludeIds"`
+	}
+	if err := s.decodeBody(r, &input); err != nil {
+		s.writeError(w, http.StatusBadRequest, "账号选择无效")
+		return
+	}
+	ids := input.AccountIDs
+	if input.All {
+		excluded := make(map[int64]struct{}, len(input.ExcludeIDs))
+		for _, id := range input.ExcludeIDs {
+			excluded[id] = struct{}{}
+		}
+		ids = nil
+		for offset := 0; ; offset += 100 {
+			items, total, err := s.managed.AlchemyAccounts.List(r.Context(), 100, offset)
+			if err != nil {
+				s.writeError(w, http.StatusInternalServerError, "无法读取 Alchemy 账号")
+				return
+			}
+			for _, account := range items {
+				if _, skip := excluded[account.ID]; !skip {
+					ids = append(ids, account.ID)
+				}
+			}
+			if offset+len(items) >= total || len(items) == 0 {
+				break
+			}
+		}
+	}
+	uniqueIDs := make([]int64, 0, len(ids))
+	seenIDs := make(map[int64]struct{}, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			continue
+		}
+		if _, seen := seenIDs[id]; !seen {
+			seenIDs[id] = struct{}{}
+			uniqueIDs = append(uniqueIDs, id)
+		}
+	}
+	if len(uniqueIDs) == 0 {
+		s.writeError(w, http.StatusBadRequest, "请至少选择一个账号")
+		return
+	}
+	accounts := make([]alchemyaccounts.Account, 0, len(uniqueIDs))
+	for _, id := range uniqueIDs {
+		account, err := s.managed.AlchemyAccounts.Get(r.Context(), id)
+		if errors.Is(err, sql.ErrNoRows) {
+			s.writeError(w, http.StatusNotFound, "Alchemy 账号不存在")
+			return
+		}
+		if err != nil {
+			s.writeError(w, http.StatusInternalServerError, "无法读取 Alchemy 账号")
+			return
+		}
+		accounts = append(accounts, account)
+	}
+	if s.managed.Revisions != nil {
+		latest, latestErr := s.managed.Revisions.Latest(r.Context())
+		if latestErr == nil {
+			for _, account := range accounts {
+				if configReferencesAlchemyAccount(latest.Payload, account) {
+					s.writeError(w, http.StatusConflict, "所选账号中有账号仍被最新配置引用，未删除任何账号")
+					return
+				}
+			}
+		} else if !errors.Is(latestErr, sql.ErrNoRows) {
+			s.writeError(w, http.StatusInternalServerError, "无法检查账号引用")
+			return
+		}
+	}
+	if err := s.managed.AlchemyAccounts.DeleteMany(r.Context(), uniqueIDs); errors.Is(err, sql.ErrNoRows) {
+		s.writeError(w, http.StatusNotFound, "Alchemy 账号不存在")
+		return
+	} else if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "无法删除 Alchemy 账号")
+		return
+	}
+	s.writeJSON(w, http.StatusOK, map[string]any{"deleted": len(accounts)})
+}
+
 func (s *Server) applyAlchemyAccounts(w http.ResponseWriter, r *http.Request, ids []int64, projectID, networkMode string, networks []string) {
 	accounts := make([]alchemyaccounts.Account, 0, len(ids))
 	seenIDs := make(map[int64]struct{}, len(ids))
@@ -240,6 +333,7 @@ func (s *Server) applyAlchemyAccounts(w http.ResponseWriter, r *http.Request, id
 	}
 	project := projects[projectIndex].(map[string]any)
 	providers, _ := project["providers"].([]any)
+	applied, skipped := 0, 0
 	for _, account := range accounts {
 		provider := map[string]any{"id": account.ProviderID, "vendor": "alchemy", "upstreamIdTemplate": "<PROVIDER>-<NETWORK>", "settings": map[string]any{"apiKey": account.APIKey}}
 		if networkMode == "only" {
@@ -275,12 +369,18 @@ func (s *Server) applyAlchemyAccounts(w http.ResponseWriter, r *http.Request, id
 					preserved[key] = value
 				}
 			}
+			if equalJSONValues(item, preserved) {
+				skipped++
+			} else {
+				applied++
+			}
 			providers[index] = preserved
 			updated = true
 			break
 		}
 		if !updated {
 			providers = append(providers, provider)
+			applied++
 		}
 	}
 	project["providers"] = providers
@@ -297,7 +397,7 @@ func (s *Server) applyAlchemyAccounts(w http.ResponseWriter, r *http.Request, id
 		return
 	}
 	if bytes.Equal(document.Payload, latest.Payload) {
-		s.writeJSON(w, http.StatusOK, latest)
+		s.writeJSON(w, http.StatusOK, alchemyApplyResponse{Revision: latest, Applied: applied, Skipped: skipped})
 		return
 	}
 	validation, err := s.managed.Validator.Validate(r.Context(), document)
@@ -315,8 +415,14 @@ func (s *Server) applyAlchemyAccounts(w http.ResponseWriter, r *http.Request, id
 	} else if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "无法保存配置版本")
 	} else {
-		s.writeJSON(w, http.StatusCreated, revision)
+		s.writeJSON(w, http.StatusCreated, alchemyApplyResponse{Revision: revision, Applied: applied, Skipped: skipped})
 	}
+}
+
+func equalJSONValues(left, right any) bool {
+	leftJSON, leftErr := json.Marshal(left)
+	rightJSON, rightErr := json.Marshal(right)
+	return leftErr == nil && rightErr == nil && bytes.Equal(leftJSON, rightJSON)
 }
 
 func (s *Server) importAlchemyAccounts(w http.ResponseWriter, r *http.Request) {

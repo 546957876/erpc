@@ -84,6 +84,20 @@ func (s *fakeAlchemyAccountStore) Delete(_ context.Context, id int64) error {
 	return sql.ErrNoRows
 }
 
+func (s *fakeAlchemyAccountStore) DeleteMany(ctx context.Context, ids []int64) error {
+	for _, id := range ids {
+		if _, err := s.Get(ctx, id); err != nil {
+			return err
+		}
+	}
+	for _, id := range ids {
+		if err := s.Delete(ctx, id); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func TestAlchemyAccountManagementAPI(t *testing.T) {
 	reg, err := registry.New(config.RuntimeConfig{PollInterval: time.Second})
 	if err != nil {
@@ -146,5 +160,27 @@ func TestAlchemyAccountDeleteProtectsLatestConfigReference(t *testing.T) {
 	assertStatus(t, response, http.StatusConflict)
 	if len(accountStore.accounts) != 1 {
 		t.Fatal("referenced account was deleted")
+	}
+}
+
+func TestAlchemyAccountBatchDelete(t *testing.T) {
+	accountStore := &fakeAlchemyAccountStore{accounts: []alchemyaccounts.Account{{ID: 1}, {ID: 2}, {ID: 3}}}
+	handler, cookie := newManagedWithDependencies(t, ManagedDependencies{Runtime: fakeRuntime{}, AlchemyAccounts: accountStore})
+	response := request(t, handler, http.MethodPost, "/api/alchemy/accounts/batch-delete", map[string]any{"accountIds": []int64{1, 3}}, cookie)
+	assertStatus(t, response, http.StatusOK)
+	if len(accountStore.accounts) != 1 || accountStore.accounts[0].ID != 2 {
+		t.Fatalf("accounts after batch delete = %#v", accountStore.accounts)
+	}
+}
+
+func TestAlchemyAccountBatchDeleteRejectsReferencedSelection(t *testing.T) {
+	accountStore := &fakeAlchemyAccountStore{accounts: []alchemyaccounts.Account{{ID: 1, ProviderID: "account-provider", APIKey: "key"}, {ID: 2}}}
+	config := mustDocument(t, `{"projects":[{"id":"main","providers":[{"id":"account-provider","vendor":"alchemy","settings":{"apiKey":"key"}}]}]}`)
+	revisionStore := &fakeRevisionStore{items: []revisions.Revision{{Revision: 1, Payload: config.Payload, ContentHash: config.Hash}}}
+	handler, cookie := newManagedWithDependencies(t, ManagedDependencies{Revisions: revisionStore, Runtime: fakeRuntime{}, AlchemyAccounts: accountStore})
+	response := request(t, handler, http.MethodPost, "/api/alchemy/accounts/batch-delete", map[string]any{"accountIds": []int64{1, 2}}, cookie)
+	assertStatus(t, response, http.StatusConflict)
+	if len(accountStore.accounts) != 2 {
+		t.Fatal("batch delete removed accounts after reference conflict")
 	}
 }

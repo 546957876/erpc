@@ -116,6 +116,13 @@ func TestStoreCRUD(t *testing.T) {
 	if err := store.Delete(context.Background(), 7); err != nil {
 		t.Fatal(err)
 	}
+	mock.ExpectBegin()
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM alchemy_accounts WHERE id = $1")).WithArgs(int64(8)).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(regexp.QuoteMeta("DELETE FROM alchemy_accounts WHERE id = $1")).WithArgs(int64(9)).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+	if err := store.DeleteMany(context.Background(), []int64{8, 9}); err != nil {
+		t.Fatal(err)
+	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}

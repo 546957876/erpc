@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckSquareOutlined, DeleteOutlined, EditOutlined, ImportOutlined, PlayCircleOutlined, SaveOutlined, SwapOutlined } from "@ant-design/icons";
 import { Alert, Button, Drawer, Empty, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag, message } from "antd";
-import { getAlchemyAccounts, useApplyAlchemyAccounts, useAlchemyAccount, useAlchemyAccounts, useDeleteAlchemyAccount, useImportAlchemyAccounts, useUpdateAlchemyAccount, useCurrentConfig, type AlchemyAccount } from "../app/api";
+import { getAlchemyAccounts, useApplyAlchemyAccounts, useAlchemyAccount, useAlchemyAccounts, useDeleteAlchemyAccount, useDeleteAlchemyAccounts, useImportAlchemyAccounts, useUpdateAlchemyAccount, useCurrentConfig, type AlchemyAccount } from "../app/api";
 import { configSchema } from "../config/ConfigFields";
 import { materializeEffectiveConfig } from "../config/document";
 
@@ -47,6 +47,7 @@ export function AlchemyAccountsPage() {
   const importer = useImportAlchemyAccounts();
   const updater = useUpdateAlchemyAccount();
   const remover = useDeleteAlchemyAccount();
+  const batchRemover = useDeleteAlchemyAccounts();
   const applier = useApplyAlchemyAccounts();
   const [form] = Form.useForm<{ name: string; payload: string }>();
   const [applyForm] = Form.useForm<{ projectId: string; networkMode: "all" | "only" | "ignore"; networks: string }>();
@@ -102,7 +103,7 @@ export function AlchemyAccountsPage() {
     if (!selectedIDs.length) return;
     try {
       const revision = await applier.mutateAsync({ accountIds: selectedIDs, projectId: values.projectId, networkMode: values.networkMode, networks: values.networks?.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) });
-      apiMessage.success(`已将 ${selectedIDs.length} 个账号生成到配置版本 v${revision.revision}，重启 eRPC 后生效`);
+      apiMessage.success(`已处理 ${selectedIDs.length} 个账号：新增或更新 ${revision.applied} 个，已存在跳过 ${revision.skipped} 个，配置版本 v${revision.revision}，重启 eRPC 后生效`);
       setApplyOpen(false);
     } catch (error) { apiMessage.error(error instanceof Error ? error.message : "应用账号失败"); }
   }
@@ -111,22 +112,46 @@ export function AlchemyAccountsPage() {
     void remover.mutateAsync(account.id).then(() => { setSelectedIDs((current) => current.filter((id) => id !== account.id)); apiMessage.success("账号已删除"); }).catch((error) => apiMessage.error(error instanceof Error ? error.message : "删除失败"));
   }
 
+  async function deleteSelected() {
+    if (!selectedIDs.length) return;
+    try {
+      const result = await batchRemover.mutateAsync({ accountIds: selectedIDs });
+      setSelectedIDs([]);
+      apiMessage.success(`已删除 ${result.deleted} 个账号`);
+    } catch (error) { apiMessage.error(error instanceof Error ? error.message : "批量删除失败"); }
+  }
+
   function selectCurrentPage() {
     setSelectedIDs((current) => Array.from(new Set([...current, ...(accounts.data?.items || []).map((account) => account.id)])));
+  }
+
+  async function allAccountIDs() {
+    const ids: number[] = [];
+    for (let offset = 0; ; offset += 100) {
+      const batch = await getAlchemyAccounts(100, offset);
+      ids.push(...batch.items.map((account) => account.id));
+      if (offset + batch.items.length >= batch.total || batch.items.length === 0) break;
+    }
+    return ids;
   }
 
   async function selectAllAccounts() {
     setSelectingAll(true);
     try {
-      const ids: number[] = [];
-      for (let offset = 0; ; offset += 100) {
-        const batch = await getAlchemyAccounts(100, offset);
-        ids.push(...batch.items.map((account) => account.id));
-        if (offset + batch.items.length >= batch.total || batch.items.length === 0) break;
-      }
+      const ids = await allAccountIDs();
       setSelectedIDs(ids);
       apiMessage.success(`已全选 ${ids.length} 个账号`);
     } catch (error) { apiMessage.error(error instanceof Error ? error.message : "全选失败"); }
+    finally { setSelectingAll(false); }
+  }
+
+  async function invertAllAccounts() {
+    setSelectingAll(true);
+    try {
+      const ids = await allAccountIDs();
+      const selected = new Set(selectedIDs);
+      setSelectedIDs(ids.filter((id) => !selected.has(id)));
+    } catch (error) { apiMessage.error(error instanceof Error ? error.message : "反选失败"); }
     finally { setSelectingAll(false); }
   }
 
@@ -144,7 +169,7 @@ export function AlchemyAccountsPage() {
       {previewError && <Alert type="error" showIcon message={previewError} className="mt-3" />}
       {preview.length > 0 && <Table<AlchemyPreviewRow> size="small" rowKey="email" pagination={false} dataSource={preview} className="ops-table mt-4" columns={[{ title: "邮箱", dataIndex: "email" }, { title: "API Key", dataIndex: "apiKey", render: (value) => <span className="mono">{value}</span> }]} />}
     </div>
-    {accounts.isLoading ? <div className="center-state"><Spin size="large" /></div> : accounts.data?.items.length ? <><div className="account-selection-toolbar"><Space wrap><Button size="small" icon={<CheckSquareOutlined />} onClick={selectCurrentPage}>全选本页</Button><Button size="small" icon={<CheckSquareOutlined />} onClick={() => void selectAllAccounts()}>全选</Button><Button size="small" icon={<SwapOutlined />} onClick={invertCurrentPage}>反选本页</Button><Button size="small" onClick={() => setSelectedIDs([])} disabled={!selectedIDs.length}>清空选择</Button><Tag color={selectedIDs.length ? "cyan" : "default"}>已选 {selectedIDs.length} 个</Tag><Button type="primary" size="small" icon={<PlayCircleOutlined />} disabled={!selectedIDs.length} onClick={() => { applyForm.resetFields(); setApplyOpen(true); }}>批量应用到项目</Button></Space></div><Table<AlchemyAccount> rowKey="id" rowSelection={{ selectedRowKeys: selectedIDs, preserveSelectedRowKeys: true, onChange: (keys) => setSelectedIDs(keys.map((key) => Number(key))) }} dataSource={accounts.data.items} loading={accounts.isFetching} className="ops-table" pagination={{ current: page, pageSize: 20, total: accounts.data.total, onChange: setPage, showSizeChanger: false }} columns={[{ title: "名称", dataIndex: "name", render: (value) => <strong>{value}</strong> }, { title: "邮箱", dataIndex: "email" }, { title: "API Key", dataIndex: "apiKey", render: (value) => <span className="mono">{value}</span> }, { title: "Provider ID", dataIndex: "providerId", render: (value) => <span className="mono">{value}</span> }, { title: "操作", key: "actions", render: (_, account) => <Space><Button size="small" icon={<PlayCircleOutlined />} onClick={() => { setSelectedIDs([account.id]); applyForm.resetFields(); setApplyOpen(true); }}>应用到项目</Button><Button size="small" icon={<EditOutlined />} onClick={() => openEdit(account)}>编辑</Button><Popconfirm title="删除这个账号？" description="如果最新配置正在引用它，删除会被拒绝。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => confirmDelete(account)}><Button size="small" danger icon={<DeleteOutlined />} /></Popconfirm></Space> }]} /></> : <Empty description="暂无 Alchemy 账号，请先粘贴导入" />}
+    {accounts.isLoading ? <div className="center-state"><Spin size="large" /></div> : accounts.data?.items.length ? <><div className="account-selection-toolbar"><Space wrap><Button size="small" icon={<CheckSquareOutlined />} onClick={selectCurrentPage}>全选本页</Button><Button size="small" icon={<CheckSquareOutlined />} loading={selectingAll} onClick={() => void selectAllAccounts()}>全选</Button><Button size="small" icon={<SwapOutlined />} onClick={invertCurrentPage}>反选本页</Button><Button size="small" icon={<SwapOutlined />} loading={selectingAll} onClick={() => void invertAllAccounts()}>反选</Button><Button size="small" onClick={() => setSelectedIDs([])} disabled={!selectedIDs.length}>清空选择</Button><Tag color={selectedIDs.length ? "cyan" : "default"}>已选 {selectedIDs.length} / 总数 {accounts.data.total}</Tag><Button type="primary" size="small" icon={<PlayCircleOutlined />} disabled={!selectedIDs.length} onClick={() => { applyForm.resetFields(); setApplyOpen(true); }}>批量应用到项目</Button><Popconfirm title="批量删除所选账号？" description="如果所选账号中有账号被最新配置引用，整批删除会被拒绝。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void deleteSelected()}><Button danger size="small" icon={<DeleteOutlined />} loading={batchRemover.isPending} disabled={!selectedIDs.length}>批量删除</Button></Popconfirm></Space></div><Table<AlchemyAccount> rowKey="id" rowSelection={{ selectedRowKeys: selectedIDs, preserveSelectedRowKeys: true, onChange: (keys) => setSelectedIDs(keys.map((key) => Number(key))) }} dataSource={accounts.data.items} loading={accounts.isFetching} className="ops-table" pagination={{ current: page, pageSize: 20, total: accounts.data.total, onChange: setPage, showSizeChanger: false }} columns={[{ title: "名称", dataIndex: "name", render: (value) => <strong>{value}</strong> }, { title: "邮箱", dataIndex: "email" }, { title: "API Key", dataIndex: "apiKey", render: (value) => <span className="mono">{value}</span> }, { title: "Provider ID", dataIndex: "providerId", render: (value) => <span className="mono">{value}</span> }, { title: "操作", key: "actions", render: (_, account) => <Space><Button size="small" icon={<PlayCircleOutlined />} onClick={() => { setSelectedIDs([account.id]); applyForm.resetFields(); setApplyOpen(true); }}>应用到项目</Button><Button size="small" icon={<EditOutlined />} onClick={() => openEdit(account)}>编辑</Button><Popconfirm title="删除这个账号？" description="如果最新配置正在引用它，删除会被拒绝。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => confirmDelete(account)}><Button size="small" danger icon={<DeleteOutlined />} /></Popconfirm></Space> }]} /></> : <Empty description="暂无 Alchemy 账号，请先粘贴导入" />}
     <Drawer title="编辑 Alchemy 账号" open={editOpen} onClose={() => setEditOpen(false)} width={620} extra={<Button type="primary" icon={<SaveOutlined />} loading={updater.isPending} onClick={() => void form.submit()}>保存</Button>}><Form form={form} layout="vertical" onFinish={(values) => void submitEdit(values)}><Form.Item name="name" label="显示名称" rules={[{ required: true, message: "请输入显示名称" }]}><Input /></Form.Item><Form.Item name="payload" label="完整账号 JSON" rules={[{ required: true, message: "请输入 JSON" }]}><Input.TextArea autoSize={{ minRows: 16, maxRows: 30 }} /></Form.Item></Form></Drawer>
     <Modal title="应用 Alchemy 账号" open={applyOpen} onCancel={() => setApplyOpen(false)} onOk={() => void applyForm.submit()} confirmLoading={applier.isPending} okText="生成配置版本" cancelText="取消"><Form form={applyForm} layout="vertical" initialValues={{ networkMode: "all" }} onFinish={(values) => void submitApply(values)}><Form.Item name="projectId" label="目标项目" rules={[{ required: true, message: "请选择项目" }]}><Select placeholder="选择项目" options={projects.map((project) => ({ value: project, label: project }))} loading={current.isLoading} /></Form.Item><Form.Item name="networkMode" label="网络范围"><Select options={[{ value: "all", label: "全部网络" }, { value: "only", label: "仅包含指定网络" }, { value: "ignore", label: "排除指定网络" }]} /></Form.Item><Form.Item noStyle shouldUpdate>{({ getFieldValue }) => getFieldValue("networkMode") === "all" ? null : <Form.Item name="networks" label="网络标识" rules={[{ required: true, message: "请输入网络标识" }]}><Input placeholder="例如 evm:56, evm:1" /></Form.Item>}</Form.Item></Form></Modal>
   </section>;

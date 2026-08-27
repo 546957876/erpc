@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { applyAlchemyAccount, applyAlchemyAccounts, deleteConfigRevision, importAlchemyAccounts, normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
+import { applyAlchemyAccount, applyAlchemyAccounts, deleteAlchemyAccounts, deleteConfigRevision, importAlchemyAccounts, normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -108,6 +108,16 @@ describe("Alchemy account API", () => {
     await expect(applyAlchemyAccounts(input)).resolves.toEqual({ revision: 4 });
     const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(path).toBe("/api/alchemy/accounts/apply");
+    expect(JSON.parse(String(init.body))).toEqual(input);
+  });
+
+  it("deletes a batch account selection once", async () => {
+    const fetchMock = mockResponse({ deleted: 2 });
+    const input = { accountIds: [1, 3] };
+    await expect(deleteAlchemyAccounts(input)).resolves.toEqual({ deleted: 2 });
+    const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(path).toBe("/api/alchemy/accounts/batch-delete");
+    expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual(input);
   });
 });

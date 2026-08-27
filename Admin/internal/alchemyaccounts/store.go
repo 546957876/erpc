@@ -154,6 +154,31 @@ func (s *Store) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
+func (s *Store) DeleteMany(ctx context.Context, ids []int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin Alchemy account batch delete: %w", err)
+	}
+	defer tx.Rollback()
+	for _, id := range ids {
+		result, err := tx.ExecContext(ctx, "DELETE FROM alchemy_accounts WHERE id = $1", id)
+		if err != nil {
+			return fmt.Errorf("delete Alchemy account %d: %w", id, err)
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("check deleted Alchemy account %d: %w", id, err)
+		}
+		if affected == 0 {
+			return sql.ErrNoRows
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit Alchemy account batch delete: %w", err)
+	}
+	return nil
+}
+
 type scanner interface {
 	Scan(dest ...any) error
 }
