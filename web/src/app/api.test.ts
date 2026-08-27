@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { deleteConfigRevision, normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
+import { applyAlchemyAccount, deleteConfigRevision, importAlchemyAccounts, normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -79,5 +79,26 @@ describe("configuration revisions", () => {
     const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(path).toBe("/api/config/revisions/7");
     expect(init.method).toBe("DELETE");
+  });
+});
+
+describe("Alchemy account API", () => {
+  it("posts pasted account JSON without changing the payload", async () => {
+    const fetchMock = mockResponse({ created: 1, skipped: 0, accounts: [] });
+    const text = '{"email":"one@example.com","api_key":"placeholder"}';
+    await expect(importAlchemyAccounts(text)).resolves.toEqual({ created: 1, skipped: 0, accounts: [] });
+    const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(path).toBe("/api/alchemy/accounts/import");
+    expect(JSON.parse(String(init.body))).toEqual({ text });
+  });
+
+  it("applies an account to a project with an explicit network scope", async () => {
+    const fetchMock = mockResponse({ revision: 3 });
+    const input = { projectId: "main", networkMode: "only" as const, networks: ["evm:56"] };
+    await expect(applyAlchemyAccount(9, input)).resolves.toEqual({ revision: 3 });
+    const [path, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(path).toBe("/api/alchemy/accounts/9/apply");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual(input);
   });
 });

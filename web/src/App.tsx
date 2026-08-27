@@ -12,6 +12,7 @@ import { SettingsPage } from "./pages/Settings";
 import { AdvancedPage } from "./pages/Advanced";
 import { RevisionsPage } from "./pages/Revisions";
 import { RpcDebugPage, rpcResultSucceeded } from "./pages/RpcDebug";
+import { AlchemyAccountsPage } from "./pages/AlchemyAccounts";
 import { configSchema } from "./config/ConfigFields";
 import { configDocumentsEqual, extractOverrides, materializeEffectiveConfig } from "./config/document";
 import { healthSettingsEqual, readProjectHealthSettings, updateProjectHealthSettings, type ProjectHealthSettings } from "./config/health";
@@ -64,6 +65,7 @@ function AppShell() {
             { key: "health", icon: <RadarChartOutlined />, label: <NavLink to="/health">节点健康</NavLink> },
             { key: "rpc-debug", icon: <ExperimentOutlined />, label: <NavLink to="/rpc-debug">RPC 调试</NavLink> },
             { key: "upstreams", icon: <ApiOutlined />, label: <NavLink to="/upstreams">上游管理</NavLink> },
+            { key: "alchemy-accounts", icon: <CloudServerOutlined />, label: <NavLink to="/alchemy-accounts">Alchemy 账号</NavLink> },
             { key: "settings", icon: <ControlOutlined />, label: <NavLink to="/settings">服务设置</NavLink> },
             { key: "advanced", icon: <FormOutlined />, label: <NavLink to="/advanced">完整配置</NavLink> },
             { key: "revisions", icon: <HistoryOutlined />, label: <NavLink to="/revisions">配置版本</NavLink> },
@@ -96,6 +98,7 @@ function AppShell() {
           <Routes>
             <Route path="/overview" element={<OverviewPage />} />
             <Route path="/upstreams" element={<UpstreamsPage />} />
+            <Route path="/alchemy-accounts" element={<AlchemyAccountsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/advanced" element={<AdvancedPage />} />
             <Route path="/revisions" element={<RevisionsPage />} />
@@ -479,8 +482,8 @@ function statusColor(status: string) { return status === "healthy" ? "green" : s
 function statusLabel(status: string) { return ({ healthy: "正常", degraded: "降级", offline: "离线", unauthorized: "未授权", unknown: "未测试" } as Record<string, string>)[status] || status; }
 
 function formatTime(value: string) { return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(value)); }
-function menuKey(path: string) { return path.startsWith("/health") || path.startsWith("/topology") || path.startsWith("/targets") ? "health" : path.startsWith("/rpc-debug") ? "rpc-debug" : path.startsWith("/upstreams") ? "upstreams" : path.startsWith("/settings") ? "settings" : path.startsWith("/advanced") ? "advanced" : path.startsWith("/revisions") ? "revisions" : "overview"; }
-function pageTitle(path: string) { return ({ overview: "运行概览", health: "节点健康", "rpc-debug": "RPC 调试", upstreams: "上游管理", settings: "服务设置", advanced: "完整配置", revisions: "配置版本" } as Record<string, string>)[menuKey(path)]; }
+function menuKey(path: string) { return path.startsWith("/health") || path.startsWith("/topology") || path.startsWith("/targets") ? "health" : path.startsWith("/rpc-debug") ? "rpc-debug" : path.startsWith("/upstreams") ? "upstreams" : path.startsWith("/alchemy-accounts") ? "alchemy-accounts" : path.startsWith("/settings") ? "settings" : path.startsWith("/advanced") ? "advanced" : path.startsWith("/revisions") ? "revisions" : "overview"; }
+function pageTitle(path: string) { return ({ overview: "运行概览", health: "节点健康", "rpc-debug": "RPC 调试", upstreams: "上游管理", "alchemy-accounts": "Alchemy 账号", settings: "服务设置", advanced: "完整配置", revisions: "配置版本" } as Record<string, string>)[menuKey(path)]; }
 
 function LegacyTopologyRedirect() {
   const { targetId } = useParams();

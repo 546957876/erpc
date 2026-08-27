@@ -46,11 +46,12 @@ type ConnectionForm = {
 
 const upstreamSchema: ConfigSchema = { ...configSchema, root: { kind: "object", ref: "UpstreamConfig" } };
 const customProviderAccessMode = "__custom_provider__";
+const alchemyAccountAccessMode = "__alchemy_account__";
 const knownProviderOptions = providerOptions();
 const accessModeOptions = [
   { label: "直接接入", options: [{ value: "custom", label: "自定义 RPC 节点" }] },
   { label: "公共节点", options: knownProviderOptions.filter((option) => option.value === "repository") },
-  { label: "eRPC 内置厂商", options: knownProviderOptions.filter((option) => option.value !== "repository") },
+  { label: "eRPC 内置厂商", options: [...knownProviderOptions.filter((option) => option.value !== "repository"), { value: alchemyAccountAccessMode, label: "Alchemy 账号导入" }] },
   { label: "兼容未来版本", options: [{ value: customProviderAccessMode, label: "其他 / 未收录 eRPC 厂商" }] },
 ];
 
@@ -138,6 +139,10 @@ export function UpstreamsPage() {
 
   function changeAccessMode(value: string) {
     if (editing !== "new") return;
+    if (value === alchemyAccountAccessMode) {
+      navigate("/alchemy-accounts");
+      return;
+    }
     if (value === "custom" || value === customProviderAccessMode) {
       selectedVendor.current = "";
       form.setFieldValue("vendor", "");

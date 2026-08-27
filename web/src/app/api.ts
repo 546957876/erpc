@@ -40,6 +40,9 @@ export type ValidationResult = { valid: boolean; errors: string[]; warnings: str
 export type SavedUpstreamTestRequest = { revision: number; projectId: string; upstreamId: string; method: string; params: unknown };
 export type TargetRpcTestRequest = { projectId: string; networkId: string; upstreamId?: string; projectSecret?: string; method: string; params: unknown };
 export type RpcTestResult = { httpStatus: number; durationMs: number; body: string; upstream?: string; upstreams?: string; cache?: string };
+export type AlchemyAccount = { id: number; email: string; name: string; providerId: string; apiKey: string; payload?: Record<string, unknown>; createdAt?: string; updatedAt?: string };
+export type AlchemyAccountList = { items: AlchemyAccount[]; total: number; limit: number; offset: number };
+export type AlchemyImportResult = { created: number; skipped: number; accounts: AlchemyAccount[] };
 
 export function normalizeValidationResult(value: Partial<ValidationResult> | null | undefined): ValidationResult {
   return {
@@ -175,4 +178,56 @@ export function useDeleteConfigRevision() {
       void queryClient.invalidateQueries({ queryKey: ["runtime"] });
     },
   });
+}
+
+export function importAlchemyAccounts(text: string): Promise<AlchemyImportResult> {
+  return apiRequest<AlchemyImportResult>("/api/alchemy/accounts/import", { method: "POST", body: JSON.stringify({ text }) });
+}
+
+export function getAlchemyAccounts(limit = 20, offset = 0): Promise<AlchemyAccountList> {
+  return apiRequest<AlchemyAccountList>(`/api/alchemy/accounts?limit=${limit}&offset=${offset}`);
+}
+
+export function getAlchemyAccount(id: number): Promise<AlchemyAccount> {
+  return apiRequest<AlchemyAccount>(`/api/alchemy/accounts/${id}`);
+}
+
+export function updateAlchemyAccount(id: number, input: Omit<AlchemyAccount, "id" | "createdAt" | "updatedAt">): Promise<AlchemyAccount> {
+  return apiRequest<AlchemyAccount>(`/api/alchemy/accounts/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+}
+
+export function deleteAlchemyAccount(id: number): Promise<void> {
+  return apiRequest<void>(`/api/alchemy/accounts/${id}`, { method: "DELETE" });
+}
+
+export function applyAlchemyAccount(id: number, input: { projectId: string; networkMode: "all" | "only" | "ignore"; networks?: string[] }): Promise<ConfigRevision> {
+  return apiRequest<ConfigRevision>(`/api/alchemy/accounts/${id}/apply`, { method: "POST", body: JSON.stringify(input) });
+}
+
+export function useAlchemyAccounts(limit = 20, offset = 0): UseQueryResult<AlchemyAccountList> {
+  return useQuery({ queryKey: ["alchemy-accounts", limit, offset], queryFn: () => getAlchemyAccounts(limit, offset) });
+}
+
+export function useAlchemyAccount(id: number) {
+  return useQuery({ queryKey: ["alchemy-accounts", id], queryFn: () => getAlchemyAccount(id), enabled: id > 0 });
+}
+
+export function useImportAlchemyAccounts() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: importAlchemyAccounts, onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["alchemy-accounts"] }); } });
+}
+
+export function useUpdateAlchemyAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: ({ id, input }: { id: number; input: Omit<AlchemyAccount, "id" | "createdAt" | "updatedAt"> }) => updateAlchemyAccount(id, input), onSuccess: (account) => { void queryClient.invalidateQueries({ queryKey: ["alchemy-accounts"] }); queryClient.setQueryData(["alchemy-accounts", account.id], account); } });
+}
+
+export function useDeleteAlchemyAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: deleteAlchemyAccount, onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["alchemy-accounts"] }); } });
+}
+
+export function useApplyAlchemyAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: ({ id, input }: { id: number; input: { projectId: string; networkMode: "all" | "only" | "ignore"; networks?: string[] } }) => applyAlchemyAccount(id, input), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["config"] }); void queryClient.invalidateQueries({ queryKey: ["runtime"] }); } });
 }
