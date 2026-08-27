@@ -15,7 +15,7 @@ func TestMigrateExecutesEmbeddedSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer db.Close()
-	mock.ExpectExec("(?s)CREATE TABLE IF NOT EXISTS admin_users.*INSERT INTO erpc_runtime").WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec("(?s)CREATE TABLE IF NOT EXISTS admin_users.*CREATE TABLE IF NOT EXISTS alchemy_accounts.*INSERT INTO erpc_runtime").WillReturnResult(sqlmock.NewResult(0, 1))
 	if err := Migrate(context.Background(), db); err != nil {
 		t.Fatal(err)
 	}
