@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/erpc/admin/internal/alchemyaccounts"
+	"github.com/erpc/admin/internal/configdoc"
+	"github.com/erpc/admin/internal/revisions"
 )
 
 type alchemyImportInput struct {
@@ -34,6 +37,8 @@ func (s *Server) handleAlchemyAccounts(w http.ResponseWriter, r *http.Request, p
 		s.importAlchemyAccounts(w, r)
 	case path == base && r.Method == http.MethodGet:
 		s.listAlchemyAccounts(w, r)
+	case strings.HasSuffix(path, "/apply"):
+		s.applyAlchemyAccount(w, r, base)
 	case strings.HasPrefix(path, base+"/"):
 		id, ok := parseAlchemyAccountID(strings.TrimPrefix(path, base+"/"))
 		if !ok {
@@ -52,6 +57,160 @@ func (s *Server) handleAlchemyAccounts(w http.ResponseWriter, r *http.Request, p
 		}
 	default:
 		s.writeError(w, http.StatusMethodNotAllowed, "不支持的请求方法")
+	}
+}
+
+func (s *Server) applyAlchemyAccount(w http.ResponseWriter, r *http.Request, base string) {
+	if r.Method != http.MethodPost {
+		s.writeError(w, http.StatusMethodNotAllowed, "不支持的请求方法")
+		return
+	}
+	suffix := strings.TrimPrefix(strings.TrimSuffix(r.URL.Path, "/"), base+"/")
+	parts := strings.Split(suffix, "/")
+	if len(parts) != 2 || parts[1] != "apply" {
+		s.writeError(w, http.StatusBadRequest, "账号标识无效")
+		return
+	}
+	id, ok := parseAlchemyAccountID(parts[0])
+	if !ok {
+		s.writeError(w, http.StatusBadRequest, "账号标识无效")
+		return
+	}
+	var input struct {
+		ProjectID   string   `json:"projectId"`
+		NetworkMode string   `json:"networkMode"`
+		Networks    []string `json:"networks"`
+	}
+	if err := s.decodeBody(r, &input); err != nil || strings.TrimSpace(input.ProjectID) == "" {
+		s.writeError(w, http.StatusBadRequest, "项目和网络范围无效")
+		return
+	}
+	if input.NetworkMode == "" {
+		input.NetworkMode = "all"
+	}
+	if input.NetworkMode != "all" && input.NetworkMode != "only" && input.NetworkMode != "ignore" {
+		s.writeError(w, http.StatusBadRequest, "网络范围模式无效")
+		return
+	}
+	if input.NetworkMode != "all" && len(input.Networks) == 0 {
+		s.writeError(w, http.StatusBadRequest, "请至少选择一个网络")
+		return
+	}
+	if input.NetworkMode != "all" {
+		networks := make([]string, 0, len(input.Networks))
+		seen := make(map[string]struct{}, len(input.Networks))
+		for _, network := range input.Networks {
+			network = strings.TrimSpace(network)
+			if network == "" {
+				continue
+			}
+			if _, exists := seen[network]; !exists {
+				seen[network] = struct{}{}
+				networks = append(networks, network)
+			}
+		}
+		if len(networks) == 0 {
+			s.writeError(w, http.StatusBadRequest, "请至少选择一个网络")
+			return
+		}
+		input.Networks = networks
+	}
+	account, err := s.managed.AlchemyAccounts.Get(r.Context(), id)
+	if errors.Is(err, sql.ErrNoRows) {
+		s.writeError(w, http.StatusNotFound, "Alchemy 账号不存在")
+		return
+	}
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "无法读取 Alchemy 账号")
+		return
+	}
+	latest, err := s.managed.Revisions.Latest(r.Context())
+	if errors.Is(err, sql.ErrNoRows) {
+		s.writeError(w, http.StatusConflict, "请先保存一份基础配置")
+		return
+	}
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "无法读取当前配置")
+		return
+	}
+	var root map[string]any
+	if err := json.Unmarshal(latest.Payload, &root); err != nil {
+		s.writeError(w, http.StatusInternalServerError, "当前配置内容无效")
+		return
+	}
+	projects, ok := root["projects"].([]any)
+	if !ok {
+		s.writeError(w, http.StatusNotFound, "项目不存在")
+		return
+	}
+	projectIndex := -1
+	for index, raw := range projects {
+		project, _ := raw.(map[string]any)
+		if project["id"] == input.ProjectID {
+			if projectIndex >= 0 {
+				s.writeError(w, http.StatusConflict, "项目标识重复，无法应用账号")
+				return
+			}
+			projectIndex = index
+		}
+	}
+	if projectIndex < 0 {
+		s.writeError(w, http.StatusNotFound, "项目不存在")
+		return
+	}
+	project := projects[projectIndex].(map[string]any)
+	providers, _ := project["providers"].([]any)
+	provider := map[string]any{"id": account.ProviderID, "vendor": "alchemy", "upstreamIdTemplate": "<PROVIDER>-<NETWORK>", "settings": map[string]any{"apiKey": account.APIKey}}
+	if input.NetworkMode == "only" {
+		provider["onlyNetworks"] = input.Networks
+	} else if input.NetworkMode == "ignore" {
+		provider["ignoreNetworks"] = input.Networks
+	}
+	updated := false
+	for index, raw := range providers {
+		item, _ := raw.(map[string]any)
+		if item["id"] == account.ProviderID {
+			providers[index] = provider
+			updated = true
+			break
+		}
+	}
+	if !updated {
+		providers = append(providers, provider)
+	}
+	project["providers"] = providers
+	projects[projectIndex] = project
+	root["projects"] = projects
+	payload, err := json.Marshal(root)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "生成配置失败")
+		return
+	}
+	document, err := configdoc.ParseJSON(payload)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, "生成配置失败")
+		return
+	}
+	if bytes.Equal(document.Payload, latest.Payload) {
+		s.writeJSON(w, http.StatusOK, latest)
+		return
+	}
+	validation, err := s.managed.Validator.Validate(r.Context(), document)
+	if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "无法校验 eRPC 配置")
+		return
+	}
+	if !validation.Valid {
+		s.writeJSON(w, http.StatusUnprocessableEntity, validation)
+		return
+	}
+	revision, err := s.managed.Revisions.Create(r.Context(), document, "administrator", latest.Revision)
+	if errors.Is(err, revisions.ErrConflict) {
+		s.writeError(w, http.StatusConflict, "配置已被更新，请刷新后重试")
+	} else if err != nil {
+		s.writeError(w, http.StatusInternalServerError, "无法保存配置版本")
+	} else {
+		s.writeJSON(w, http.StatusCreated, revision)
 	}
 }
 
