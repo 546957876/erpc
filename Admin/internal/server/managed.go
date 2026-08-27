@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/erpc/admin/internal/alchemyaccounts"
 	"github.com/erpc/admin/internal/configdoc"
 	"github.com/erpc/admin/internal/erpc"
 	"github.com/erpc/admin/internal/revisions"
@@ -38,11 +39,20 @@ type runtimeController interface {
 	Restart(context.Context) (adminruntime.Status, error)
 }
 
+type alchemyAccountStore interface {
+	Import(context.Context, []alchemyaccounts.Record) (alchemyaccounts.ImportSummary, error)
+	List(context.Context, int, int) ([]alchemyaccounts.Account, int, error)
+	Get(context.Context, int64) (alchemyaccounts.Account, error)
+	Update(context.Context, int64, alchemyaccounts.Record) (alchemyaccounts.Account, error)
+	Delete(context.Context, int64) error
+}
+
 type ManagedDependencies struct {
-	Revisions revisionStore
-	Validator configValidator
-	Defaults  configdoc.Document
-	Runtime   runtimeController
+	Revisions       revisionStore
+	Validator       configValidator
+	Defaults        configdoc.Document
+	Runtime         runtimeController
+	AlchemyAccounts alchemyAccountStore
 }
 
 type configInput struct {
@@ -66,6 +76,9 @@ type savedUpstreamTestInput struct {
 func (s *Server) handleManaged(w http.ResponseWriter, r *http.Request) bool {
 	path := strings.TrimSuffix(r.URL.Path, "/")
 	switch {
+	case strings.HasPrefix(path, "/api/alchemy/accounts"):
+		s.handleAlchemyAccounts(w, r, path)
+		return true
 	case path == "/api/runtime" && r.Method == http.MethodGet:
 		status, err := s.managed.Runtime.Status(r.Context())
 		s.respondManaged(w, status, err)

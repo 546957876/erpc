@@ -297,7 +297,7 @@ func splitPath(path string) []string {
 func (s *Server) writeCORS(w http.ResponseWriter) {
 	w.Header().Set("access-control-allow-origin", "*")
 	w.Header().Set("access-control-allow-headers", "content-type")
-	w.Header().Set("access-control-allow-methods", "GET,POST,DELETE,OPTIONS")
+	w.Header().Set("access-control-allow-methods", "GET,POST,PATCH,DELETE,OPTIONS")
 }
 
 func (s *Server) writeJSON(w http.ResponseWriter, status int, value any) {

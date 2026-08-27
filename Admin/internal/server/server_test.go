@@ -41,7 +41,7 @@ func TestServerAccountSetupLoginAndProtection(t *testing.T) {
 	handler := newTestServer(t)
 	options := request(t, handler, http.MethodOptions, "/api/config/revisions/2", nil, nil)
 	assertStatus(t, options, http.StatusNoContent)
-	if got := options.Header().Get("access-control-allow-methods"); got != "GET,POST,DELETE,OPTIONS" {
+	if got := options.Header().Get("access-control-allow-methods"); got != "GET,POST,PATCH,DELETE,OPTIONS" {
 		t.Fatalf("CORS methods = %q", got)
 	}
 

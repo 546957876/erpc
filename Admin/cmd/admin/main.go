@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/erpc/admin/internal/alchemyaccounts"
 	adminauth "github.com/erpc/admin/internal/auth"
 	"github.com/erpc/admin/internal/config"
 	"github.com/erpc/admin/internal/configdoc"
@@ -51,6 +52,7 @@ func main() {
 			log.Fatal(err)
 		}
 		accounts = adminauth.NewDatabaseStore(db)
+		alchemyAccountStore := alchemyaccounts.NewStore(db)
 		revisionStore := revisions.NewStore(db)
 		validator := configdoc.Validator{Binary: runtime.ERPCBinary, RuntimeDir: runtime.RuntimeDir}
 		_, defaults, err := ensureInitialRevision(ctx, revisionStore, validator)
@@ -58,7 +60,7 @@ func main() {
 			log.Fatal(err)
 		}
 		manager = adminruntime.NewManager(db, revisionStore, validator, runtime.ERPCBinary, runtime.RuntimeDir, runtime.ShutdownTimeout)
-		managed = &server.ManagedDependencies{Revisions: revisionStore, Validator: validator, Defaults: defaults, Runtime: manager}
+		managed = &server.ManagedDependencies{Revisions: revisionStore, Validator: validator, Defaults: defaults, Runtime: manager, AlchemyAccounts: alchemyAccountStore}
 	} else {
 		fileAccounts, err := adminauth.NewStore(runtime.AuthFile)
 		if err != nil {
