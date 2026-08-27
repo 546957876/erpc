@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"path/filepath"
 	"testing"
@@ -14,7 +13,7 @@ import (
 	adminauth "github.com/erpc/admin/internal/auth"
 	"github.com/erpc/admin/internal/config"
 	"github.com/erpc/admin/internal/registry"
-	adminruntime "github.com/erpc/admin/internal/runtime"
+	"github.com/erpc/admin/internal/revisions"
 )
 
 type fakeAlchemyAccountStore struct {
@@ -138,5 +137,14 @@ func TestAlchemyAccountManagementAPI(t *testing.T) {
 	}
 }
 
-var _ = errors.Is
-var _ adminruntime.Status
+func TestAlchemyAccountDeleteProtectsLatestConfigReference(t *testing.T) {
+	accountStore := &fakeAlchemyAccountStore{accounts: []alchemyaccounts.Account{{ID: 1, ProviderID: "account-provider", APIKey: "key"}}}
+	config := mustDocument(t, `{"projects":[{"id":"main","providers":[{"id":"account-provider","vendor":"alchemy","settings":{"apiKey":"key"}}]}]}`)
+	revisionStore := &fakeRevisionStore{items: []revisions.Revision{{Revision: 1, Payload: config.Payload, ContentHash: config.Hash}}}
+	handler, cookie := newManagedWithDependencies(t, ManagedDependencies{Revisions: revisionStore, Runtime: fakeRuntime{}, AlchemyAccounts: accountStore})
+	response := request(t, handler, http.MethodDelete, "/api/alchemy/accounts/1", nil, cookie)
+	assertStatus(t, response, http.StatusConflict)
+	if len(accountStore.accounts) != 1 {
+		t.Fatal("referenced account was deleted")
+	}
+}

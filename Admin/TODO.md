@@ -22,13 +22,13 @@
 
 ## 下一阶段
 
-- [ ] Alchemy 账号库：新增 PostgreSQL `alchemy_accounts` 表，完整保存导入 JSON，提取邮箱、名称、稳定 Provider ID 和 API Key。
-- [ ] Alchemy 账号导入解析：支持单对象、NDJSON 和 JSON 数组；服务端校验 `email`/`api_key`，保留未知字段和 `checkpoint`，实现幂等跳过与冲突拒绝。
-- [ ] Alchemy 账号 CRUD API：列表、详情、编辑、删除和批量导入；所有接口复用管理员会话，错误和日志不得回显敏感资料。
-- [ ] Alchemy 账号 Web 页面：中文深色账号库、批量粘贴预览、邮箱/API Key 列表、完整 JSON 编辑和删除保护。
-- [ ] Alchemy 账号应用配置：选择项目后把每个账号投影为标准 `vendor: alchemy` Provider，只写 `settings.apiKey`，创建新配置版本但不自动重启。
-- [ ] 上游管理增加“eRPC 内置厂商 -> Alchemy 账号导入”，保留原有手动 API Key 入口和 Provider CRUD。
-- [ ] Alchemy 账号导入/应用回归测试：重复、冲突、未知字段、批量规模、原有 Provider 不受影响、版本号和重启边界。
+- [x] Alchemy 账号库：新增 PostgreSQL `alchemy_accounts` 表，完整保存导入 JSON，提取邮箱、名称、稳定 Provider ID 和 API Key。
+- [x] Alchemy 账号导入解析：支持单对象、NDJSON 和 JSON 数组；服务端校验 `email`/`api_key`，保留未知字段和 `checkpoint`，实现幂等跳过与冲突拒绝。
+- [x] Alchemy 账号 CRUD API：列表、详情、编辑、删除和批量导入；所有接口复用管理员会话，错误和日志不得回显敏感资料。
+- [x] Alchemy 账号 Web 页面：中文深色账号库、批量粘贴预览、邮箱/API Key 列表、完整 JSON 编辑和删除保护。
+- [x] Alchemy 账号应用配置：选择项目后把每个账号投影为标准 `vendor: alchemy` Provider，只写 `settings.apiKey`，创建新配置版本但不自动重启。
+- [x] 上游管理增加“eRPC 内置厂商 -> Alchemy 账号导入”，保留原有手动 API Key 入口和 Provider CRUD。
+- [x] Alchemy 账号导入/应用回归测试：重复、冲突、未知字段、原有 Provider 不受影响、版本号和重启边界。
 - [ ] 启动后等待 eRPC HTTP Admin 端点就绪，再把运行版本和拓扑目标写入 Registry。
 - [ ] 从 eRPC 响应头读取并持久化 `X-ERPC-Version` / `X-ERPC-Commit`。
 - [ ] 为完整字段 schema 增加更多按配置拥有者区分的中文说明和安全示例。

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DeleteOutlined, EditOutlined, ImportOutlined, PlayCircleOutlined, SaveOutlined } from "@ant-design/icons";
 import { Alert, Button, Drawer, Empty, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag, message } from "antd";
 import { useApplyAlchemyAccount, useAlchemyAccount, useAlchemyAccounts, useDeleteAlchemyAccount, useImportAlchemyAccounts, useUpdateAlchemyAccount, useCurrentConfig, type AlchemyAccount } from "../app/api";
@@ -38,7 +38,6 @@ export function AlchemyAccountsPage() {
   const [selectedID, setSelectedID] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
-  const [previewError, setPreviewError] = useState("");
   const [apiMessage, contextHolder] = message.useMessage();
   const accounts = useAlchemyAccounts(20, (page - 1) * 20);
   const detail = useAlchemyAccount(selectedID);
@@ -49,24 +48,30 @@ export function AlchemyAccountsPage() {
   const applier = useApplyAlchemyAccount();
   const [form] = Form.useForm<{ name: string; payload: string }>();
   const [applyForm] = Form.useForm<{ projectId: string; networkMode: "all" | "only" | "ignore"; networks: string }>();
-  const preview = useMemo(() => {
-    if (!text.trim()) return [];
+  const previewState = useMemo(() => {
+    if (!text.trim()) return { rows: [] as AlchemyPreviewRow[], error: "" };
     try {
-      setPreviewError("");
-      return parseAlchemyPreview(text);
+      return { rows: parseAlchemyPreview(text), error: "" };
     } catch (error) {
-      setPreviewError(error instanceof Error ? error.message : "预览失败");
-      return [];
+      return { rows: [] as AlchemyPreviewRow[], error: error instanceof Error ? error.message : "预览失败" };
     }
   }, [text]);
+  const preview = previewState.rows;
+  const previewError = previewState.error;
   const projects = useMemo(() => {
     const payload = current.data?.effectivePayload || materializeEffectiveConfig(current.data?.payload || {}, current.data?.defaultPayload || {}, configSchema);
     return Array.isArray(payload.projects) ? payload.projects.map((project) => project as Record<string, unknown>).filter((project) => typeof project.id === "string").map((project) => String(project.id)) : [];
   }, [current.data]);
 
+  useEffect(() => {
+    if (!editOpen || !detail.data?.payload) return;
+    form.setFieldsValue({ name: detail.data.name, payload: JSON.stringify(detail.data.payload, null, 2) });
+  }, [detail.data, editOpen, form]);
+
   function openEdit(account: AlchemyAccount) {
     setSelectedID(account.id);
-    form.setFieldsValue({ name: account.name, payload: JSON.stringify(account.payload || {}, null, 2) });
+    form.resetFields();
+    form.setFieldsValue({ name: account.name, payload: "" });
     setEditOpen(true);
   }
 

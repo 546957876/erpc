@@ -2,6 +2,7 @@ package alchemyaccounts
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -26,6 +27,20 @@ func TestParseImportAcceptsObjectNDJSONAndArray(t *testing.T) {
 				t.Fatalf("records = %d, want %d", len(result.Records), test.want)
 			}
 		})
+	}
+}
+
+func TestParseImportManyAccounts(t *testing.T) {
+	var input strings.Builder
+	for index := 0; index < 500; index++ {
+		fmt.Fprintf(&input, "{\"email\":\"account-%d@example.com\",\"api_key\":\"placeholder-%d\"}\n", index, index)
+	}
+	result, err := ParseImport(input.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Records) != 500 || result.Skipped != 0 {
+		t.Fatalf("records=%d skipped=%d", len(result.Records), result.Skipped)
 	}
 }
 

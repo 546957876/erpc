@@ -170,7 +170,29 @@ func (s *Server) applyAlchemyAccount(w http.ResponseWriter, r *http.Request, bas
 	for index, raw := range providers {
 		item, _ := raw.(map[string]any)
 		if item["id"] == account.ProviderID {
-			providers[index] = provider
+			preserved := make(map[string]any, len(item)+4)
+			for key, value := range item {
+				preserved[key] = value
+			}
+			preserved["id"] = account.ProviderID
+			preserved["vendor"] = "alchemy"
+			preserved["upstreamIdTemplate"] = "<PROVIDER>-<NETWORK>"
+			settings := map[string]any{}
+			if existing, ok := item["settings"].(map[string]any); ok {
+				for key, value := range existing {
+					settings[key] = value
+				}
+			}
+			settings["apiKey"] = account.APIKey
+			preserved["settings"] = settings
+			delete(preserved, "onlyNetworks")
+			delete(preserved, "ignoreNetworks")
+			for key, value := range provider {
+				if key != "settings" {
+					preserved[key] = value
+				}
+			}
+			providers[index] = preserved
 			updated = true
 			break
 		}
@@ -234,6 +256,7 @@ func (s *Server) importAlchemyAccounts(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	result.Skipped += parsed.Skipped
 	s.writeJSON(w, http.StatusCreated, map[string]any{"created": result.Created, "skipped": result.Skipped, "accounts": result.Accounts})
 }
 
@@ -344,6 +367,7 @@ func (s *Server) deleteAlchemyAccount(w http.ResponseWriter, r *http.Request, id
 	} else if err != nil {
 		s.writeError(w, http.StatusInternalServerError, "无法删除 Alchemy 账号")
 	} else {
+		s.writeCORS(w)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

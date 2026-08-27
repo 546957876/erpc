@@ -46,4 +46,12 @@ YAML，用户不需要编写、粘贴或理解 YAML。
 
 配置版本页支持删除历史版本。最新版本和运行记录引用的版本会被保护，删除前必须确认；厂商 Provider 只有在首次请求对应网络时才会懒加载上游，因此 RPC 调试页会使用配置中的项目作为首次请求入口。
 
+## Alchemy 账号库
+
+“Alchemy 账号”页面用于把账号资料导入 Admin 自己的 PostgreSQL 账号库。粘贴区支持单个 JSON、JSON 数组和 NDJSON；顶层必须包含 `email` 与 `api_key`，其余字段（包括 `checkpoint`）会原样保存。导入相同资料会跳过，同邮箱但内容不同会整批拒绝。账号列表显示邮箱、名称、Provider ID 和 API Key，打开详情后才编辑完整 JSON。
+
+导入后需要在账号行点击“应用到项目”，选择项目和网络范围。应用只把该账号的 Provider ID、`vendor: alchemy`、节点名称模板和 `settings.apiKey` 写入新的配置版本，不会把邮箱密码、refresh token、bearer token 或 checkpoint 写入 eRPC YAML，也不会自动重启；要让运行中的 eRPC 使用新版本，需在“运行概览”明确重启。最新配置仍引用的账号不能删除，历史版本不会被自动改写。
+
+对应接口为 `POST /api/alchemy/accounts/import`、`GET /api/alchemy/accounts`、`GET/PATCH/DELETE /api/alchemy/accounts/{id}` 和 `POST /api/alchemy/accounts/{id}/apply`，均要求管理员登录会话，初始请求体上限为 2 MiB。
+
 浏览器不能提交任意目标 URL，也看不到已保存节点的静态认证头。Admin 管理密钥永远不会发送到项目或第三方上游。两条接口都要求有效的管理员登录会话。运行态的指定上游与跳过缓存仍服从项目的 `allowClientDirectives` 设置。若节点状态显示 401，请在“服务设置”填写 eRPC Admin 内部密钥；它与 Admin Web 登录账号密码分开，仅用于 Admin 调用 eRPC 的 `/admin` 接口。响应只返回被测服务的 HTTP 状态、耗时、正文，以及 eRPC 的上游和缓存诊断头；连接错误不会回显包含密钥的 RPC 地址。
