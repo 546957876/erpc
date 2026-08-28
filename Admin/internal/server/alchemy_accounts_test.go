@@ -184,3 +184,44 @@ func TestAlchemyAccountBatchDeleteRejectsReferencedSelection(t *testing.T) {
 		t.Fatal("batch delete removed accounts after reference conflict")
 	}
 }
+
+func TestAlchemyAccountListIncludesUsageAndProjectFilter(t *testing.T) {
+	accountStore := &fakeAlchemyAccountStore{accounts: []alchemyaccounts.Account{
+		{ID: 1, Email: "one@example.com", ProviderID: "account-one", APIKey: "key-one"},
+		{ID: 2, Email: "two@example.com", ProviderID: "account-two", APIKey: "key-two"},
+		{ID: 3, Email: "three@example.com", ProviderID: "account-three", APIKey: "key-three"},
+	}}
+	config := mustDocument(t, `{"projects":[{"id":"main","providers":[{"id":"account-one","vendor":"alchemy"}]},{"id":"main2","providers":[{"id":"account-three","vendor":"alchemy"}]}]}`)
+	revisionStore := &fakeRevisionStore{items: []revisions.Revision{{Revision: 1, Payload: config.Payload, ContentHash: config.Hash}}}
+	handler, cookie := newManagedWithDependencies(t, ManagedDependencies{Revisions: revisionStore, Runtime: fakeRuntime{}, AlchemyAccounts: accountStore})
+	list := request(t, handler, http.MethodGet, "/api/alchemy/accounts?limit=20&offset=0", nil, cookie)
+	assertStatus(t, list, http.StatusOK)
+	var all struct {
+		Items []alchemyaccounts.Account `json:"items"`
+		Total int                       `json:"total"`
+	}
+	if err := json.NewDecoder(list.Body).Decode(&all); err != nil || all.Total != 3 || len(all.Items) != 3 {
+		t.Fatalf("all list = %#v, err=%v", all, err)
+	}
+	if len(all.Items[0].UsedInProjects) != 1 || all.Items[0].UsedInProjects[0] != "main" || len(all.Items[1].UsedInProjects) != 0 || len(all.Items[2].UsedInProjects) != 1 || all.Items[2].UsedInProjects[0] != "main2" {
+		t.Fatalf("usage = %#v", all.Items)
+	}
+	filtered := request(t, handler, http.MethodGet, "/api/alchemy/accounts?limit=20&offset=0&projectId=main", nil, cookie)
+	assertStatus(t, filtered, http.StatusOK)
+	var project struct {
+		Items []alchemyaccounts.Account `json:"items"`
+		Total int                       `json:"total"`
+	}
+	if err := json.NewDecoder(filtered.Body).Decode(&project); err != nil || project.Total != 1 || len(project.Items) != 1 || project.Items[0].ProviderID != "account-one" {
+		t.Fatalf("project filter = %#v, err=%v", project, err)
+	}
+	unused := request(t, handler, http.MethodGet, "/api/alchemy/accounts?limit=20&offset=0&projectId=unused", nil, cookie)
+	assertStatus(t, unused, http.StatusOK)
+	var noProject struct {
+		Items []alchemyaccounts.Account `json:"items"`
+		Total int                       `json:"total"`
+	}
+	if err := json.NewDecoder(unused.Body).Decode(&noProject); err != nil || noProject.Total != 1 || len(noProject.Items) != 1 || noProject.Items[0].ProviderID != "account-two" {
+		t.Fatalf("unused filter = %#v, err=%v", noProject, err)
+	}
+}

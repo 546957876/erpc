@@ -13,6 +13,13 @@ export type FieldMeta = {
   deprecated?: boolean;
 };
 
+export const svmClusterDefault = "mainnet-beta";
+export const svmClusterOptions = [
+  { value: "mainnet-beta", label: "Solana 主网（mainnet-beta）" },
+  { value: "devnet", label: "Solana 开发网（devnet）" },
+  { value: "testnet", label: "Solana 测试网（testnet）" },
+];
+
 const catalog: Record<string, Partial<FieldMeta>> = {
   "Config.logLevel": { label: "日志级别", description: "控制 eRPC 输出日志的详细程度。", example: "INFO", defaultKind: "runtime", defaultText: "INFO" },
   "Config.clusterKey": { label: "集群标识", description: "用于区分共享状态和缓存命名空间的集群标识。", example: "erpc-default", defaultKind: "runtime", defaultText: "erpc-default" },
@@ -27,6 +34,15 @@ const catalog: Record<string, Partial<FieldMeta>> = {
   "UpstreamConfig.type": { label: "协议类型", description: "上游协议或架构类型（如 evm、svm），不是 RPC 服务厂商；也可填写 eRPC 支持的其他类型。", example: "evm", defaultKind: "inherited" },
   "RetryPolicyConfig.maxAttempts": { label: "最大尝试次数", description: "一次请求允许尝试的最大上游次数。", example: "3", defaultKind: "inherited" },
   "EvmUpstreamConfig.statePollerInterval": { label: "状态轮询周期", description: "检查 EVM 上游区块状态的时间间隔。", example: "30s", defaultKind: "inherited" },
+  "SvmNetworkConfig.chain": { label: "SVM 链", description: "SVM 链名称。留空时使用 Solana；只有配置其他 SVM 兼容链时才需要填写。", example: "solana", defaultKind: "runtime" },
+  "SvmNetworkConfig.cluster": { label: "SVM 集群", description: "Solana 集群名称，决定请求路由和网络标识，例如 mainnet-beta、devnet 或 testnet。", example: "mainnet-beta", defaultKind: "none" },
+  "SvmNetworkConfig.commitment": { label: "默认确认级别", description: "当请求没有指定 commitment 时使用的 Solana 确认级别。", example: "confirmed", defaultKind: "none" },
+  "SvmNetworkConfig.statePollerDebounce": { label: "SVM 状态轮询间隔（防抖）", description: "两次 SVM 状态检查之间的最短间隔，单位是毫秒；与 EVM 状态轮询周期独立。留空使用 eRPC 默认值 400 毫秒，不会跟随 EVM 轮询设置。", example: "400ms", defaultKind: "runtime", defaultText: "400ms" },
+  "SvmNetworkConfig.maxFinalizedSlotLag": { label: "最终槽位最大落后数", description: "参与最终确认共识时，上游允许落后于最高 finalized 槽位的数量。", example: "100", defaultKind: "runtime" },
+  "SvmNetworkConfig.enforceBlockAvailability": { label: "检查区块可用性", description: "请求区块前检查上游是否已经索引到该槽位。", example: "启用", defaultKind: "runtime" },
+  "SvmUpstreamConfig.chain": { label: "SVM 链", description: "该上游服务的 SVM 链名称，必须与网络配置一致。", example: "solana", defaultKind: "inherited" },
+  "SvmUpstreamConfig.cluster": { label: "SVM 集群", description: "该上游服务的 Solana 集群，必须与网络配置一致。", example: "mainnet-beta", defaultKind: "inherited" },
+  "SvmUpstreamConfig.checkGenesisHash": { label: "检查创世哈希", description: "启动时验证上游是否确实指向配置的 SVM 集群。", example: "启用", defaultKind: "runtime" },
   "TimeoutPolicyConfig.duration": { label: "超时时长", description: "限制单次请求等待上游响应的最长时间。", example: "10s", defaultKind: "inherited" },
   logLevel: { label: "日志级别", description: "控制 eRPC 输出日志的详细程度。", example: "INFO", defaultKind: "runtime", defaultText: "INFO" },
   clusterKey: { label: "集群标识", description: "用于区分共享状态和缓存命名空间的集群标识。", example: "erpc-default", defaultKind: "runtime", defaultText: "erpc-default" },

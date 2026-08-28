@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import schema from "./schema.generated.json";
-import { allMetadata, metadataFor } from "./metadata";
+import { allMetadata, metadataFor, svmClusterDefault, svmClusterOptions } from "./metadata";
 import type { ConfigSchema } from "./document";
 
 describe("配置字段中文元数据", () => {
@@ -43,5 +43,28 @@ describe("配置字段中文元数据", () => {
 
     expect(item.label).toBe("协议类型");
     expect(item.description).toContain("不是 RPC 服务厂商");
+  });
+
+  it("为 SVM 网络字段显示明确的中文标签和用途", () => {
+    const typed = schema as ConfigSchema;
+    const chain = metadataFor(["SvmNetworkConfig", "chain"], { kind: "string" }, typed);
+    const cluster = metadataFor(["SvmNetworkConfig", "cluster"], { kind: "string" }, typed);
+    const commitment = metadataFor(["SvmNetworkConfig", "commitment"], { kind: "string" }, typed);
+    expect(chain.label).toBe("SVM 链");
+    expect(cluster.label).toBe("SVM 集群");
+    expect(cluster.description).toContain("mainnet-beta");
+    expect(commitment.label).toBe("默认确认级别");
+    const poller = metadataFor(["SvmNetworkConfig", "statePollerDebounce"], { kind: "string" }, typed);
+    expect(poller.description).toContain("与 EVM 状态轮询周期独立");
+    expect(poller.description).toContain("400 毫秒");
+  });
+
+  it("提供固定的 SVM 集群下拉选项并默认主网", () => {
+    expect(svmClusterDefault).toBe("mainnet-beta");
+    expect(svmClusterOptions).toEqual([
+      { value: "mainnet-beta", label: "Solana 主网（mainnet-beta）" },
+      { value: "devnet", label: "Solana 开发网（devnet）" },
+      { value: "testnet", label: "Solana 测试网（testnet）" },
+    ]);
   });
 });

@@ -86,6 +86,13 @@ export function fromFormDocument(value: ConfigDocument, schema: ConfigSchema): C
   return transformFromForm(value, schema.root, schema, true) as ConfigDocument;
 }
 
+export function normalizeSvmStatePollerDebounce(value: unknown): unknown {
+  if (typeof value === "number" && Number.isFinite(value)) return `${value}ms`;
+  if (typeof value !== "string") return value;
+  const text = value.trim();
+  return /^\d+(?:\.\d+)?$/.test(text) ? `${text}ms` : value;
+}
+
 export function mergeKnownConfig(original: ConfigDocument, edited: ConfigDocument, schema: ConfigSchema): ConfigDocument {
   return mergeNode(original, edited, schema.root, schema) as ConfigDocument;
 }
@@ -115,9 +122,19 @@ function transformFromForm(value: unknown, node: SchemaNode, schema: ConfigSchem
     const source = record(value);
     const result: ConfigDocument = {};
     for (const field of fieldsFor(node, schema)) {
-      const next = transformFromForm(source[field.key], field.node, schema);
-      if (next !== undefined) result[field.key] = next;
+      let next = transformFromForm(source[field.key], field.node, schema);
+      if (field.owner === "SvmNetworkConfig" && field.key === "statePollerDebounce") next = normalizeSvmStatePollerDebounce(next);
+      // eRPC treats both network scope fields as mutually exclusive by
+      // presence. An empty list means "no restriction" in the form, so omit
+      // it instead of emitting `onlyNetworks: []` and `ignoreNetworks: []`.
+      if (next !== undefined && !(field.node.kind === "array" && (field.key === "onlyNetworks" || field.key === "ignoreNetworks") && Array.isArray(next) && next.length === 0)) {
+        result[field.key] = next;
+      }
     }
+    // Form.List registers an empty strategies array even when no auth
+    // strategy was added. An empty AuthConfig is invalid in eRPC, so omit the
+    // optional object entirely until it contains a real strategy.
+    if (node.ref === "AuthConfig" && Array.isArray(result.strategies) && result.strategies.length === 0) return undefined;
     return root || Object.keys(result).length > 0 ? result : undefined;
   }
   if (node.kind === "array") return Array.isArray(value) ? value.map((item) => transformFromForm(item, node.item || { kind: "any" }, schema)).filter((item) => item !== undefined) : undefined;

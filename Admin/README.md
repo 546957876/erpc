@@ -52,6 +52,6 @@ YAML，用户不需要编写、粘贴或理解 YAML。
 
 导入后需要在账号行点击“应用到项目”，选择项目和网络范围。应用只把该账号的 Provider ID、`vendor: alchemy`、节点名称模板和 `settings.apiKey` 写入新的配置版本，不会把邮箱密码、refresh token、bearer token 或 checkpoint 写入 eRPC YAML，也不会自动重启；要让运行中的 eRPC 使用新版本，需在“运行概览”明确重启。最新配置仍引用的账号不能删除，历史版本不会被自动改写。
 
-对应接口为 `POST /api/alchemy/accounts/import`、`GET /api/alchemy/accounts`、`GET/PATCH/DELETE /api/alchemy/accounts/{id}`、`POST /api/alchemy/accounts/{id}/apply`、`POST /api/alchemy/accounts/apply` 和 `POST /api/alchemy/accounts/batch-delete`，均要求管理员登录会话，初始请求体上限为 2 MiB。批量应用按 Provider ID 去重，已存在且内容未变化的账号会跳过，不会追加重复 Provider；批量删除会先检查最新配置引用，发现任一引用时整批拒绝。
+对应接口为 `POST /api/alchemy/accounts/import`、`GET /api/alchemy/accounts`、`GET/PATCH/DELETE /api/alchemy/accounts/{id}`、`POST /api/alchemy/accounts/{id}/apply`、`POST /api/alchemy/accounts/apply` 和 `POST /api/alchemy/accounts/batch-delete`，均要求管理员登录会话，初始请求体上限为 2 MiB。账号列表返回 `usedInProjects`，`GET /api/alchemy/accounts` 可用 `projectId` 筛选项目，使用 `projectId=unused` 筛选未应用账号。批量应用按 Provider ID 去重，已存在且内容未变化的账号会跳过，不会追加重复 Provider；批量删除会先检查最新配置引用，发现任一引用时整批拒绝。
 
 浏览器不能提交任意目标 URL，也看不到已保存节点的静态认证头。Admin 管理密钥永远不会发送到项目或第三方上游。两条接口都要求有效的管理员登录会话。运行态的指定上游与跳过缓存仍服从项目的 `allowClientDirectives` 设置。若节点状态显示 401，请在“服务设置”填写 eRPC Admin 内部密钥；它与 Admin Web 登录账号密码分开，仅用于 Admin 调用 eRPC 的 `/admin` 接口。响应只返回被测服务的 HTTP 状态、耗时、正文，以及 eRPC 的上游和缓存诊断头；连接错误不会回显包含密钥的 RPC 地址。

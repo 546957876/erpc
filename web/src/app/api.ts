@@ -40,7 +40,7 @@ export type ValidationResult = { valid: boolean; errors: string[]; warnings: str
 export type SavedUpstreamTestRequest = { revision: number; projectId: string; upstreamId: string; method: string; params: unknown };
 export type TargetRpcTestRequest = { projectId: string; networkId: string; upstreamId?: string; projectSecret?: string; method: string; params: unknown };
 export type RpcTestResult = { httpStatus: number; durationMs: number; body: string; upstream?: string; upstreams?: string; cache?: string };
-export type AlchemyAccount = { id: number; email: string; name: string; providerId: string; apiKey: string; payload?: Record<string, unknown>; createdAt?: string; updatedAt?: string };
+export type AlchemyAccount = { id: number; email: string; name: string; providerId: string; apiKey: string; usedInProjects?: string[]; payload?: Record<string, unknown>; createdAt?: string; updatedAt?: string };
 export type AlchemyAccountList = { items: AlchemyAccount[]; total: number; limit: number; offset: number };
 export type AlchemyImportResult = { created: number; skipped: number; accounts: AlchemyAccount[] };
 export type AlchemyApplyResult = ConfigRevision & { applied: number; skipped: number };
@@ -185,8 +185,9 @@ export function importAlchemyAccounts(text: string): Promise<AlchemyImportResult
   return apiRequest<AlchemyImportResult>("/api/alchemy/accounts/import", { method: "POST", body: JSON.stringify({ text }) });
 }
 
-export function getAlchemyAccounts(limit = 20, offset = 0): Promise<AlchemyAccountList> {
-  return apiRequest<AlchemyAccountList>(`/api/alchemy/accounts?limit=${limit}&offset=${offset}`);
+export function getAlchemyAccounts(limit = 20, offset = 0, projectId = ""): Promise<AlchemyAccountList> {
+	const filter = projectId ? `&projectId=${encodeURIComponent(projectId)}` : "";
+	return apiRequest<AlchemyAccountList>(`/api/alchemy/accounts?limit=${limit}&offset=${offset}${filter}`);
 }
 
 export function getAlchemyAccount(id: number): Promise<AlchemyAccount> {
@@ -213,8 +214,8 @@ export function applyAlchemyAccounts(input: { accountIds?: number[]; all?: boole
 	return apiRequest<AlchemyApplyResult>("/api/alchemy/accounts/apply", { method: "POST", body: JSON.stringify(input) });
 }
 
-export function useAlchemyAccounts(limit = 20, offset = 0): UseQueryResult<AlchemyAccountList> {
-  return useQuery({ queryKey: ["alchemy-accounts", limit, offset], queryFn: () => getAlchemyAccounts(limit, offset) });
+export function useAlchemyAccounts(limit = 20, offset = 0, projectId = ""): UseQueryResult<AlchemyAccountList> {
+	return useQuery({ queryKey: ["alchemy-accounts", limit, offset, projectId], queryFn: () => getAlchemyAccounts(limit, offset, projectId) });
 }
 
 export function useAlchemyAccount(id: number) {

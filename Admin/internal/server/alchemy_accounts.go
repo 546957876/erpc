@@ -2,9 +2,11 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -452,16 +454,142 @@ func (s *Server) importAlchemyAccounts(w http.ResponseWriter, r *http.Request) {
 func (s *Server) listAlchemyAccounts(w http.ResponseWriter, r *http.Request) {
 	limit := queryInt(r, "limit", 20)
 	offset := queryInt(r, "offset", 0)
-	accounts, total, err := s.managed.AlchemyAccounts.List(r.Context(), limit, offset)
+	projectFilter := strings.TrimSpace(r.URL.Query().Get("projectId"))
+	usage, err := s.alchemyAccountUsage(r.Context())
 	if err != nil {
-		s.writeError(w, http.StatusInternalServerError, "无法读取 Alchemy 账号")
+		s.writeError(w, http.StatusInternalServerError, "无法读取账号应用状态")
 		return
+	}
+	var accounts []alchemyaccounts.Account
+	var total int
+	if projectFilter == "" || projectFilter == "all" {
+		accounts, total, err = s.managed.AlchemyAccounts.List(r.Context(), limit, offset)
+		if err != nil {
+			s.writeError(w, http.StatusInternalServerError, "无法读取 Alchemy 账号")
+			return
+		}
+	} else {
+		// ponytail: project filters scan the account table; add a usage index if scale makes this slow.
+		all, _, listErr := s.listAllAlchemyAccounts(r.Context())
+		if listErr != nil {
+			s.writeError(w, http.StatusInternalServerError, "无法读取 Alchemy 账号")
+			return
+		}
+		filtered := make([]alchemyaccounts.Account, 0, len(all))
+		for _, account := range all {
+			account.UsedInProjects = usage.projectsFor(account)
+			if projectFilter == "unused" {
+				if len(account.UsedInProjects) == 0 {
+					filtered = append(filtered, account)
+				}
+			} else if containsString(account.UsedInProjects, projectFilter) {
+				filtered = append(filtered, account)
+			}
+		}
+		total = len(filtered)
+		start := minInt(offset, total)
+		end := minInt(start+limit, total)
+		accounts = filtered[start:end]
 	}
 	items := make([]map[string]any, 0, len(accounts))
 	for _, account := range accounts {
-		items = append(items, map[string]any{"id": account.ID, "email": account.Email, "name": account.Name, "providerId": account.ProviderID, "apiKey": account.APIKey, "createdAt": account.CreatedAt, "updatedAt": account.UpdatedAt})
+		account.UsedInProjects = usage.projectsFor(account)
+		items = append(items, map[string]any{"id": account.ID, "email": account.Email, "name": account.Name, "providerId": account.ProviderID, "apiKey": account.APIKey, "createdAt": account.CreatedAt, "updatedAt": account.UpdatedAt, "usedInProjects": account.UsedInProjects})
 	}
 	s.writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total, "limit": limit, "offset": offset})
+}
+
+type alchemyAccountUsage struct {
+	providers []alchemyProviderUsage
+}
+
+type alchemyProviderUsage struct {
+	projectID  string
+	providerID string
+	apiKey     string
+}
+
+func (s *Server) alchemyAccountUsage(ctx context.Context) (alchemyAccountUsage, error) {
+	usage := alchemyAccountUsage{}
+	if s.managed.Revisions == nil {
+		return usage, nil
+	}
+	latest, err := s.managed.Revisions.Latest(ctx)
+	if errors.Is(err, sql.ErrNoRows) {
+		return usage, nil
+	}
+	if err != nil {
+		return usage, fmt.Errorf("read latest configuration for Alchemy usage: %w", err)
+	}
+	var root struct {
+		Projects []struct {
+			ID        string `json:"id"`
+			Providers []struct {
+				ID       string `json:"id"`
+				Settings struct {
+					APIKey string `json:"apiKey"`
+				} `json:"settings"`
+			} `json:"providers"`
+		} `json:"projects"`
+	}
+	if err := json.Unmarshal(latest.Payload, &root); err != nil {
+		return usage, fmt.Errorf("parse latest configuration for Alchemy usage: %w", err)
+	}
+	for _, project := range root.Projects {
+		if strings.TrimSpace(project.ID) == "" {
+			continue
+		}
+		for _, provider := range project.Providers {
+			usage.providers = append(usage.providers, alchemyProviderUsage{projectID: project.ID, providerID: provider.ID, apiKey: provider.Settings.APIKey})
+		}
+	}
+	return usage, nil
+}
+
+func (u alchemyAccountUsage) projectsFor(account alchemyaccounts.Account) []string {
+	projects := make([]string, 0, 1)
+	seen := make(map[string]struct{})
+	for _, provider := range u.providers {
+		if provider.providerID != account.ProviderID && provider.apiKey != account.APIKey {
+			continue
+		}
+		if _, exists := seen[provider.projectID]; exists {
+			continue
+		}
+		seen[provider.projectID] = struct{}{}
+		projects = append(projects, provider.projectID)
+	}
+	return projects
+}
+
+func (s *Server) listAllAlchemyAccounts(ctx context.Context) ([]alchemyaccounts.Account, int, error) {
+	all := make([]alchemyaccounts.Account, 0)
+	for offset := 0; ; offset += 100 {
+		items, total, err := s.managed.AlchemyAccounts.List(ctx, 100, offset)
+		if err != nil {
+			return nil, 0, err
+		}
+		all = append(all, items...)
+		if offset+len(items) >= total || len(items) == 0 {
+			return all, total, nil
+		}
+	}
+}
+
+func containsString(items []string, target string) bool {
+	for _, item := range items {
+		if item == target {
+			return true
+		}
+	}
+	return false
+}
+
+func minInt(left, right int) int {
+	if left < right {
+		return left
+	}
+	return right
 }
 
 func (s *Server) getAlchemyAccount(w http.ResponseWriter, r *http.Request, id int64) {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { applyAlchemyAccount, applyAlchemyAccounts, deleteAlchemyAccounts, deleteConfigRevision, importAlchemyAccounts, normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
+import { applyAlchemyAccount, applyAlchemyAccounts, deleteAlchemyAccounts, deleteConfigRevision, getAlchemyAccounts, importAlchemyAccounts, normalizeValidationResult, testSavedUpstream, testTargetRpc } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -119,5 +119,13 @@ describe("Alchemy account API", () => {
     expect(path).toBe("/api/alchemy/accounts/batch-delete");
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual(input);
+  });
+
+  it("loads accounts filtered by project", async () => {
+    const fetchMock = mockResponse({ items: [], total: 0, limit: 20, offset: 0 });
+    await expect(getAlchemyAccounts(20, 0, "main")).resolves.toEqual({ items: [], total: 0, limit: 20, offset: 0 });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [path] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(path).toBe("/api/alchemy/accounts?limit=20&offset=0&projectId=main");
   });
 });

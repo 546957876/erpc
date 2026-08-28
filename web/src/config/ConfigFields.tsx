@@ -1,8 +1,9 @@
+import { useEffect } from "react";
 import { DeleteOutlined, PlusOutlined, QuestionCircleOutlined, UndoOutlined } from "@ant-design/icons";
 import { AutoComplete, Button, Collapse, Form, Input, InputNumber, Popover, Select, Tag, Tooltip } from "antd";
 import schemaData from "./schema.generated.json";
-import { fieldState, fieldsFor, valueAtPath, type ConfigDocument, type ConfigSchema, type SchemaField, type SchemaNode } from "./document";
-import { metadataFor, type FieldMeta } from "./metadata";
+import { fieldState, fieldsFor, normalizeSvmStatePollerDebounce, valueAtPath, type ConfigDocument, type ConfigSchema, type SchemaField, type SchemaNode } from "./document";
+import { metadataFor, svmClusterDefault, svmClusterOptions, type FieldMeta } from "./metadata";
 import { isSensitive, labelFor } from "./labels";
 
 export const configSchema = schemaData as ConfigSchema;
@@ -74,7 +75,7 @@ function SchemaField({ field, namePath, schemaPath, statePath, context }: { fiel
 function SchemaValue({ node, namePath, schemaPath, statePath = namePath, fieldKey, context }: { node: SchemaNode; namePath: (string | number)[]; schemaPath: string[]; statePath?: (string | number)[]; fieldKey?: string; context: FieldContext }) {
   if (node.kind === "object") {
     const fields = fieldsFor(node, configSchema);
-    return <div className="config-object"><div className="config-grid">{fields.map((field) => {
+    return <div className="config-object">{node.ref === "ProjectConfig" && <ProjectNetworkHint />}<div className="config-grid">{fields.map((field) => {
       const path = [...namePath, field.key];
       const child = <SchemaField key={field.key} field={field} namePath={[...namePath, field.key]} schemaPath={[...schemaPath, field.key]} statePath={[...statePath, field.key]} context={context} />;
       const meta = metadataFor([...schemaPath, field.key], field.node, configSchema);
@@ -90,6 +91,12 @@ function SchemaValue({ node, namePath, schemaPath, statePath = namePath, fieldKe
 
   const key = fieldKey || schemaPath.at(-1) || "value";
   const label = <FieldLabel fieldKey={key} metaPath={schemaPath} statePath={statePath} node={node} context={context} />;
+  if (key === "cluster" && schemaPath.includes("svm")) {
+    return <SvmClusterField namePath={namePath} statePath={statePath} label={label} />;
+  }
+  if (key === "statePollerDebounce" && schemaPath.includes("svm")) {
+    return <Form.Item name={namePath} label={label} normalize={normalizeSvmStatePollerDebounce} getValueProps={(value) => ({ value: typeof value === "string" && value.endsWith("ms") ? Number.parseFloat(value) : value })}><InputNumber min={0} step={1} precision={6} addonAfter="ms" className="w-full" /></Form.Item>;
+  }
   if (node.kind === "boolean") {
     return <Form.Item name={namePath} label={label}><Select allowClear placeholder="使用默认值" options={[{ value: true, label: "启用" }, { value: false, label: "关闭" }]} /></Form.Item>;
   }
@@ -154,8 +161,24 @@ function formatDefault(value: unknown): string | undefined {
 }
 
 function defaultValue(node: SchemaNode): unknown {
-  if (node.kind === "object") return {};
+  if (node.kind === "object") return node.ref === "SvmNetworkConfig" || node.ref === "SvmUpstreamConfig" ? { cluster: svmClusterDefault } : {};
   if (node.kind === "array" || node.kind === "map") return [];
   if (node.kind === "boolean") return undefined;
   return "";
+}
+
+function ProjectNetworkHint() {
+  return <div className="project-network-hint"><strong>网络配置方式</strong><span>已配置网络：在下方“网络”中明确添加并设置 EVM 或 SVM。</span><span>厂商可自动发现网络：Alchemy 等厂商模式会在请求对应网络时生成上游。</span><span>SVM 必须手动配置网络：Solana 集群需要选择 mainnet-beta、devnet 或 testnet。</span></div>;
+}
+
+function SvmClusterField({ namePath, statePath, label }: { namePath: (string | number)[]; statePath: (string | number)[]; label: React.ReactNode }) {
+  const form = Form.useFormInstance();
+  const parentPath = statePath.slice(0, -2);
+  const marker = statePath.includes("upstreams") ? "type" : "architecture";
+  const architecture = Form.useWatch([...parentPath, marker], form);
+  const cluster = Form.useWatch(statePath, form);
+  useEffect(() => {
+    if (architecture === "svm" && !cluster) form.setFieldValue(statePath, svmClusterDefault);
+  }, [architecture, cluster, form, statePath]);
+  return <Form.Item name={namePath} label={label}><Select options={svmClusterOptions} disabled={architecture !== "svm"} placeholder={architecture === "svm" ? "选择 Solana 集群" : "先选择 SVM"} /></Form.Item>;
 }

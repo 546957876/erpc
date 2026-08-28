@@ -178,4 +178,42 @@ describe("structured eRPC configuration", () => {
       futureRoot: { enabled: true },
     });
   });
+
+  it("omits empty optional network scope arrays from form documents", () => {
+    const providerSchema: ConfigSchema = {
+      root: { kind: "object", ref: "Config" },
+      definitions: {
+        Config: { fields: [{ key: "providers", node: { kind: "array", item: { kind: "object", ref: "Provider" } } }] },
+        Provider: {
+          fields: [
+            { key: "id", node: { kind: "string" } },
+            { key: "vendor", node: { kind: "string" } },
+            { key: "onlyNetworks", node: { kind: "array", item: { kind: "string" } } },
+            { key: "ignoreNetworks", node: { kind: "array", item: { kind: "string" } } },
+          ],
+        },
+      },
+    };
+
+    expect(fromFormDocument({ providers: [{ id: "alchemy", vendor: "alchemy", onlyNetworks: [], ignoreNetworks: [] }] }, providerSchema)).toEqual({
+      providers: [{ id: "alchemy", vendor: "alchemy" }],
+    });
+
+    const svmSchema: ConfigSchema = {
+      root: { kind: "object", ref: "SvmNetworkConfig" },
+      definitions: { SvmNetworkConfig: { fields: [{ key: "statePollerDebounce", node: { kind: "string" }, owner: "SvmNetworkConfig" }] } },
+    };
+    expect(fromFormDocument({ statePollerDebounce: "6000" }, svmSchema)).toEqual({ statePollerDebounce: "6000ms" });
+    expect(fromFormDocument({ statePollerDebounce: 6000 }, svmSchema)).toEqual({ statePollerDebounce: "6000ms" });
+
+    const authSchema: ConfigSchema = {
+      root: { kind: "object", ref: "Config" },
+      definitions: {
+        Config: { fields: [{ key: "auth", node: { kind: "object", ref: "AuthConfig" } }] },
+        AuthConfig: { fields: [{ key: "strategies", node: { kind: "array", item: { kind: "object", ref: "Strategy" } } }] },
+        Strategy: { fields: [{ key: "type", node: { kind: "string" } }] },
+      },
+    };
+    expect(fromFormDocument({ auth: { strategies: [] } }, authSchema)).toEqual({});
+  });
 });
