@@ -1,0 +1,7 @@
+listen: 0.0.0.0:8090
+pollInterval: 10s
+databaseUrlEnv: ERPC_ADMIN_DATABASE_URL
+erpcBinary: /usr/local/bin/erpc
+runtimeDir: /var/lib/erpc-admin/runtime
+shutdownTimeout: 15s
+authFile: /var/lib/erpc-admin/admin-auth.json

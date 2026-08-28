@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-erpc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-erpc-admin-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-erpc_admin}
+    volumes:
+      - admin_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ERPC_ADMIN_DATABASE_URL: postgres://${POSTGRES_USER:-erpc}:${POSTGRES_PASSWORD:-erpc-admin-change-me}@postgres:5432/${POSTGRES_DB:-erpc_admin}?sslmode=disable
+    volumes:
+      - admin_runtime_data:/var/lib/erpc-admin
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    depends_on:
+      - admin
+    ports:
+      - "8180:80"
+
+volumes:
+  admin_postgres_data:
+  admin_runtime_data:
