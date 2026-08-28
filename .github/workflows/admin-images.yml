@@ -40,10 +40,30 @@ jobs:
 
       - name: Build and push image
         uses: docker/build-push-action@v6
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ github.sha }}
         with:
           context: .
           file: ${{ matrix.file }}
-          push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ github.sha }}
+          load: true
+          tags: ${{ env.IMAGE }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+      - name: Push image to GHCR
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ github.sha }}
+        run: docker push "$IMAGE"
+
+      - name: Export image for restricted networks
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ github.sha }}
+          ARCHIVE: ${{ matrix.name }}-${{ github.sha }}.tar.gz
+        run: docker save "$IMAGE" | gzip -1 > "$ARCHIVE"
+
+      - name: Upload image archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-${{ github.sha }}
+          path: ${{ matrix.name }}-${{ github.sha }}.tar.gz
+          retention-days: 7
