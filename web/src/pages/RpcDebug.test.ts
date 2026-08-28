@@ -78,6 +78,7 @@ describe("RPC debug helpers", () => {
     expect(effectiveRPCScheme({ server: { tls: { enabled: true } } })).toBe("https");
     expect(detectPublicRPCBaseURL("https://rpc.example:4400/admin", {}, { hostname: "admin.example" })).toBe("https://rpc.example:4400");
     expect(detectPublicRPCBaseURL(undefined, { server: { httpPortV4: 4100, tls: { enabled: true } } }, { hostname: "admin.example" })).toBe("https://admin.example:4100");
+    expect(detectPublicRPCBaseURL("http://127.0.0.1:4000", { server: { httpPortV4: 4000 } }, { hostname: "rpc.example", protocol: "https:" })).toBe("https://rpc.example");
   });
 
   it("reads the effective eRPC port and builds paste-ready commands", () => {

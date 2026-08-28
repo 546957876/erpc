@@ -81,11 +81,16 @@ export function effectiveRPCScheme(payload: ConfigPayload): "http" | "https" {
   return record(record(record(payload).server).tls).enabled === true ? "https" : "http";
 }
 
-export function detectPublicRPCBaseURL(targetBaseURL: string | undefined, payload: ConfigPayload, location: { hostname?: string } = typeof window === "undefined" ? {} : window.location): string {
+export function detectPublicRPCBaseURL(targetBaseURL: string | undefined, payload: ConfigPayload, location: { hostname?: string; protocol?: string; port?: string } = typeof window === "undefined" ? {} : window.location): string {
   if (targetBaseURL?.trim()) {
     try {
       const parsed = new URL(targetBaseURL.trim());
       if ((parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.hostname) {
+        if (isLoopbackHost(parsed.hostname) && location.hostname && !isLoopbackHost(location.hostname)) {
+          const protocol = location.protocol === "https:" ? "https:" : "http:";
+          const port = location.port && !((protocol === "https:" && location.port === "443") || (protocol === "http:" && location.port === "80")) ? `:${location.port}` : "";
+          return `${protocol}//${location.hostname}${port}`;
+        }
         parsed.pathname = parsed.pathname.replace(/\/admin\/?$/, "").replace(/\/+$/, "");
         parsed.search = "";
         parsed.hash = "";
@@ -97,6 +102,11 @@ export function detectPublicRPCBaseURL(targetBaseURL: string | undefined, payloa
   }
   const hostname = location.hostname?.trim() || "127.0.0.1";
   return `${effectiveRPCScheme(payload)}://${hostname}:${effectiveRPCPort(payload)}`;
+}
+
+function isLoopbackHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === "localhost" || host === "127.0.0.1" || host === "::1";
 }
 
 export function buildRPCCommands(url: string, method: string, params: unknown[] | Record<string, unknown>, projectSecret = "") {
