@@ -21,7 +21,9 @@ type initialValidator interface {
 }
 
 func ensureInitialRevision(ctx context.Context, store initialRevisionStore, validator initialValidator) (revisions.Revision, configdoc.Document, error) {
-	empty, err := configdoc.ParseJSON([]byte(`{}`))
+	// Keep the managed production path on compact diagnostics by default.
+	// Full per-attempt traces can overflow a reverse proxy header buffer.
+	empty, err := configdoc.ParseJSON([]byte(`{"server":{"executionHeaders":"summary"}}`))
 	if err != nil {
 		return revisions.Revision{}, configdoc.Document{}, fmt.Errorf("build initial configuration: %w", err)
 	}

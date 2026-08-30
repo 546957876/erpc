@@ -25,6 +25,7 @@ pnpm dev -- --port 8180
 ## 配置与运行
 
 - 保存只创建新配置版本，不会自动重启 eRPC。
+- 新安装的 Admin 初始版本默认使用 `server.executionHeaders: summary`，避免完整上游追踪头撑大反向代理响应头；需要逐次追踪时可在“完整配置”中改为 `all`。
 - 启动或重启会再次调用 `erpc.exe validate`，随后应用最新有效版本。
 - 运行文件位于 `data/runtime/revision-<版本>/erpc.yaml`，日志位于 `data/runtime/erpc.log`。
 - 停止时先发送 Windows `CTRL_BREAK`，超过 `shutdownTimeout` 才强制终止。
