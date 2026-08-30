@@ -7,6 +7,15 @@ import { materializeEffectiveConfig } from "../config/document";
 
 export type AlchemyPreviewRow = { email: string; apiKey: string };
 
+export const COMMON_ALCHEMY_NETWORKS = ["evm:1", "evm:56", "evm:4663"] as const;
+
+type ApplyNetworkMode = "all" | "only" | "ignore" | "common";
+
+export function resolveApplyNetworkScope(mode: ApplyNetworkMode, networks = "") {
+  if (mode === "common") return { networkMode: "only" as const, networks: [...COMMON_ALCHEMY_NETWORKS] };
+  return { networkMode: mode, networks: networks.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) };
+}
+
 export function parseAlchemyPreview(text: string): AlchemyPreviewRow[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
@@ -51,7 +60,7 @@ export function AlchemyAccountsPage() {
   const batchRemover = useDeleteAlchemyAccounts();
   const applier = useApplyAlchemyAccounts();
   const [form] = Form.useForm<{ name: string; payload: string }>();
-  const [applyForm] = Form.useForm<{ projectId: string; networkMode: "all" | "only" | "ignore"; networks: string }>();
+  const [applyForm] = Form.useForm<{ projectId: string; networkMode: ApplyNetworkMode; networks: string }>();
   const previewState = useMemo(() => {
     if (!text.trim()) return { rows: [] as AlchemyPreviewRow[], error: "" };
     try {
@@ -106,10 +115,11 @@ export function AlchemyAccountsPage() {
     } catch (error) { apiMessage.error(error instanceof Error ? error.message : "账号内容无效"); }
   }
 
-  async function submitApply(values: { projectId: string; networkMode: "all" | "only" | "ignore"; networks: string }) {
+  async function submitApply(values: { projectId: string; networkMode: ApplyNetworkMode; networks: string }) {
     if (!selectedIDs.length) return;
     try {
-      const revision = await applier.mutateAsync({ accountIds: selectedIDs, projectId: values.projectId, networkMode: values.networkMode, networks: values.networks?.split(/[,\n]/).map((item) => item.trim()).filter(Boolean) });
+      const scope = resolveApplyNetworkScope(values.networkMode, values.networks);
+      const revision = await applier.mutateAsync({ accountIds: selectedIDs, projectId: values.projectId, ...scope });
       apiMessage.success(`已处理 ${selectedIDs.length} 个账号：新增或更新 ${revision.applied} 个，已存在跳过 ${revision.skipped} 个，配置版本 v${revision.revision}，重启 eRPC 后生效`);
       setApplyOpen(false);
     } catch (error) { apiMessage.error(error instanceof Error ? error.message : "应用账号失败"); }
@@ -178,6 +188,6 @@ export function AlchemyAccountsPage() {
     </div>
     {accounts.isLoading ? <div className="center-state"><Spin size="large" /></div> : accounts.data ? <><div className="account-selection-toolbar"><Space wrap><Select size="small" value={projectFilter} options={projectOptions} onChange={setProjectFilter} style={{ minWidth: 150 }} /><Button size="small" icon={<CheckSquareOutlined />} onClick={selectCurrentPage}>全选本页</Button><Button size="small" icon={<CheckSquareOutlined />} loading={selectingAll} onClick={() => void selectAllAccounts()}>全选</Button><Button size="small" icon={<SwapOutlined />} onClick={invertCurrentPage}>反选本页</Button><Button size="small" icon={<SwapOutlined />} loading={selectingAll} onClick={() => void invertAllAccounts()}>反选</Button><Button size="small" onClick={() => setSelectedIDs([])} disabled={!selectedIDs.length}>清空选择</Button><Tag color={selectedIDs.length ? "cyan" : "default"}>已选 {selectedIDs.length} / 总数 {accounts.data.total}</Tag><Button type="primary" size="small" icon={<PlayCircleOutlined />} disabled={!selectedIDs.length} onClick={() => { applyForm.resetFields(); setApplyOpen(true); }}>批量应用到项目</Button><Popconfirm title="批量删除所选账号？" description="如果所选账号中有账号被最新配置引用，整批删除会被拒绝。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => void deleteSelected()}><Button danger size="small" icon={<DeleteOutlined />} loading={batchRemover.isPending} disabled={!selectedIDs.length}>批量删除</Button></Popconfirm></Space></div><Table<AlchemyAccount> rowKey="id" rowSelection={{ selectedRowKeys: selectedIDs, preserveSelectedRowKeys: true, onChange: (keys) => setSelectedIDs(keys.map((key) => Number(key))) }} dataSource={accounts.data.items} loading={accounts.isFetching} className="ops-table" pagination={{ current: page, pageSize: 20, total: accounts.data.total, onChange: setPage, showSizeChanger: false }} columns={[{ title: "名称", dataIndex: "name", render: (value) => <strong>{value}</strong> }, { title: "邮箱", dataIndex: "email" }, { title: "API Key", dataIndex: "apiKey", render: (value) => <span className="mono">{value}</span> }, { title: "应用项目", dataIndex: "usedInProjects", render: (value: string[] | undefined) => value?.length ? <Space size={4} wrap>{value.map((project) => <Tag color="cyan" key={project}>{project}</Tag>)}</Space> : <Tag>未应用</Tag> }, { title: "Provider ID", dataIndex: "providerId", render: (value) => <span className="mono">{value}</span> }, { title: "操作", key: "actions", render: (_, account) => <Space><Button size="small" icon={<PlayCircleOutlined />} onClick={() => { setSelectedIDs([account.id]); applyForm.resetFields(); setApplyOpen(true); }}>应用到项目</Button><Button size="small" icon={<EditOutlined />} onClick={() => openEdit(account)}>编辑</Button><Popconfirm title="删除这个账号？" description="如果最新配置正在引用它，删除会被拒绝。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={() => confirmDelete(account)}><Button size="small" danger icon={<DeleteOutlined />} /></Popconfirm></Space> }]} /></> : null}
     <Drawer title="编辑 Alchemy 账号" open={editOpen} onClose={() => setEditOpen(false)} width={620} extra={<Button type="primary" icon={<SaveOutlined />} loading={updater.isPending} onClick={() => void form.submit()}>保存</Button>}><Form form={form} layout="vertical" onFinish={(values) => void submitEdit(values)}><Form.Item name="name" label="显示名称" rules={[{ required: true, message: "请输入显示名称" }]}><Input /></Form.Item><Form.Item name="payload" label="完整账号 JSON" rules={[{ required: true, message: "请输入 JSON" }]}><Input.TextArea autoSize={{ minRows: 16, maxRows: 30 }} /></Form.Item></Form></Drawer>
-    <Modal title="应用 Alchemy 账号" open={applyOpen} onCancel={() => setApplyOpen(false)} onOk={() => void applyForm.submit()} confirmLoading={applier.isPending} okText="生成配置版本" cancelText="取消"><Form form={applyForm} layout="vertical" initialValues={{ networkMode: "all" }} onFinish={(values) => void submitApply(values)}><Form.Item name="projectId" label="目标项目" rules={[{ required: true, message: "请选择项目" }]}><Select placeholder="选择项目" options={projects.map((project) => ({ value: project, label: project }))} loading={current.isLoading} /></Form.Item><Form.Item name="networkMode" label="网络范围"><Select options={[{ value: "all", label: "全部网络" }, { value: "only", label: "仅包含指定网络" }, { value: "ignore", label: "排除指定网络" }]} /></Form.Item><Form.Item noStyle shouldUpdate>{({ getFieldValue }) => getFieldValue("networkMode") === "all" ? null : <Form.Item name="networks" label="网络标识" rules={[{ required: true, message: "请输入网络标识" }]}><Input placeholder="例如 evm:56, evm:1" /></Form.Item>}</Form.Item></Form></Modal>
+    <Modal title="应用 Alchemy 账号" open={applyOpen} onCancel={() => setApplyOpen(false)} onOk={() => void applyForm.submit()} confirmLoading={applier.isPending} okText="生成配置版本" cancelText="取消"><Form form={applyForm} layout="vertical" initialValues={{ networkMode: "common" }} onFinish={(values) => void submitApply(values)}><Form.Item name="projectId" label="目标项目" rules={[{ required: true, message: "请选择项目" }]}><Select placeholder="选择项目" options={projects.map((project) => ({ value: project, label: project }))} loading={current.isLoading} /></Form.Item><Form.Item name="networkMode" label="网络范围"><Select options={[{ value: "common", label: "常用网络（推荐：EVM:1、EVM:56、EVM:4663）" }, { value: "all", label: "全部网络（依赖厂商自动发现）" }, { value: "only", label: "仅包含指定网络" }, { value: "ignore", label: "排除指定网络" }]} /></Form.Item><Form.Item noStyle shouldUpdate>{({ getFieldValue }) => ["all", "common"].includes(getFieldValue("networkMode")) ? null : <Form.Item name="networks" label="网络标识" rules={[{ required: true, message: "请输入网络标识" }]}><Input placeholder="例如 evm:56, evm:1" /></Form.Item>}</Form.Item></Form></Modal>
   </section>;
 }
